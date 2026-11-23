@@ -1,0 +1,186 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>YKS Macera Defteri</title>
+<meta name="description" content="Arkadaşların görev verir, sen tamamlarsın. YKS yolculuğun bir macera.">
+<meta name="theme-color" content="#121a33">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icons/icon-192.png">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="YKS Macera">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Pixelify+Sans:wght@400;500;600;700&family=Press+Start+2P&display=swap">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="el-abyss" viewBox="0 0 24 24"><path fill="currentColor" d="M12 .5l2.3 6.2 5.8-2.8-2.8 5.8L23.5 12l-6.2 2.3 2.8 5.8-5.8-2.8L12 23.5l-2.3-6.2-5.8 2.8 2.8-5.8L.5 12l6.2-2.3-2.8-5.8 5.8 2.8z"/><circle cx="12" cy="12" r="5.4" fill="#0b0f22"/><circle cx="12" cy="12" r="5.4" fill="none" stroke="currentColor" stroke-width="1"/><path fill="currentColor" d="M12 7.6c1.5 1.3 1.5 7.5 0 8.8-1.5-1.3-1.5-7.5 0-8.8z"/></symbol>
+  <symbol id="el-all" viewBox="0 0 24 24"><path fill="currentColor" d="M12 1.5 14.3 9.7 22.5 12 14.3 14.3 12 22.5 9.7 14.3 1.5 12 9.7 9.7z"/><circle cx="12" cy="12" r="2" fill="#141b38" fill-opacity=".5"/></symbol>
+</svg>
+<canvas id="stars"></canvas>
+
+<div class="wrap">
+  <section class="frame setup" id="setupMsg" hidden>
+    <h1 style="color:var(--gold)">Kurulum bitmemiş</h1>
+    <p><code>config.js</code> dosyasına Supabase bilgileri henüz yazılmamış. <code>KURULUM.md</code> dosyasındaki 3. adımı tamamla.</p>
+  </section>
+
+  <section class="frame gate" id="gate" aria-label="Giriş">
+    <h1>YKS Macera Defteri</h1>
+    <p class="muted" id="gateStatus">Defter açılıyor…</p>
+
+    <form id="welcomeForm" hidden>
+      <p class="muted" style="text-align:center">Maceraya başlamadan önce kendini tanıt.</p>
+      <label>İsim Soyisim
+        <input id="nameIn" required maxlength="40" autocomplete="name" placeholder="Örn. Ayşe Yılmaz">
+      </label>
+      <div class="choices" role="group" aria-label="Rolünü seç">
+        <button type="button" class="choice" id="pickHero" aria-pressed="false"><b>Gezgin ol</b><span>YKS'ye çalışan benim. Bana 6 haneli bir geçit kodu ver.</span></button>
+        <button type="button" class="choice" id="pickHelper" aria-pressed="false"><b>Arkadaşa yardım</b><span>Arkadaşımın koduyla girip ona görev vereceğim.</span></button>
+      </div>
+      <label id="codeLabel" hidden>Arkadaşının 6 haneli geçit kodu
+        <input id="codeIn" class="codein" inputmode="numeric" maxlength="6" placeholder="000000" autocomplete="off">
+      </label>
+      <div class="err" id="welcomeErr" role="alert"></div>
+      <button class="btn" type="submit" id="welcomeBtn">Devam et</button>
+    </form>
+
+    <div class="codescreen" id="codeScreen" hidden>
+      <p>Macera defterin hazır. Senin geçit kodun:</p>
+      <div class="bigcode" id="bigCode">000 000</div>
+      <p class="muted">Bu kodu yardım edecek arkadaşlarına ver. Onlar bu kodla girip sana görev verecek. Kod her zaman sayfanın üstünde de yazar.</p>
+      <div style="display:flex;gap:8px;justify-content:center;flex-wrap:wrap">
+        <button class="btn ghost" type="button" id="copyBig">Kodu kopyala</button>
+        <button class="btn" type="button" id="startBtn">Maceraya başla</button>
+      </div>
+    </div>
+  </section>
+
+  <div class="app" id="app" hidden>
+    <div class="topbar">
+      <div class="who">Merhaba, <b id="meName"></b><span class="chip" id="meRole"></span></div>
+      <select id="roomSel" aria-label="Hangi macera"></select>
+      <button class="btn ghost small bell" type="button" id="bellBtn" aria-pressed="false" hidden>🔔 Bildirimleri aç</button>
+      <button class="btn ghost small" type="button" id="joinToggle">+ Arkadaşa katıl</button>
+      <button class="btn ghost small" type="button" id="ownStart" hidden>Kendi maceramı başlat</button>
+    </div>
+
+    <section class="frame install" id="installCard" hidden>
+      <h2>📱 Telefona kur <button class="x" type="button" id="installClose" aria-label="Kapat">×</button></h2>
+      <div id="installIos" hidden>
+        <ol>
+          <li>Bu sayfayı <b>Safari</b>'de aç.</li>
+          <li>Alttaki <b>Paylaş</b> düğmesine (kare ve yukarı ok) dokun.</li>
+          <li><b>Ana Ekrana Ekle</b>'yi seç.</li>
+          <li>Ana ekrandaki <b>YKS Macera</b> ikonundan aç ve <b>🔔 Bildirimleri aç</b>'a dokun.</li>
+        </ol>
+        <span class="muted">Bildirimler için iOS 16.4 veya daha yenisi gerekir.</span>
+      </div>
+      <div id="installAndroid" hidden>
+        <span>Uygulama gibi kurup bildirim alabilirsin.</span>
+        <div><button class="btn small" type="button" id="installBtn">Uygulamayı yükle</button></div>
+        <span class="muted" id="installAlt">Buton çıkmazsa: Chrome menüsü (⋮) → <b>Uygulamayı yükle</b> veya <b>Ana ekrana ekle</b>.</span>
+      </div>
+    </section>
+
+    <form class="frame joinbox" id="joinForm" hidden>
+      <label for="joinCode">Yardım edeceğin arkadaşın 6 haneli geçit kodu</label>
+      <div class="row">
+        <input id="joinCode" class="codein" inputmode="numeric" maxlength="6" placeholder="000000" autocomplete="off">
+        <button class="btn" type="submit">Katıl</button>
+      </div>
+      <div class="err" id="joinErr" role="alert"></div>
+    </form>
+
+    <section class="frame hero" aria-label="Kahraman">
+      <div class="hero-top">
+        <div class="portrait" id="portrait"></div>
+        <div class="hero-info">
+          <div class="eyebrow">YKS yolculuğundaki gezgin</div>
+          <h1 id="heroName">Gezgin</h1>
+          <div class="rank-row">
+            <span class="ar" id="ar">AR 1</span>
+            <div class="xpbar" aria-hidden="true"><i id="xpfill"></i></div>
+            <span class="xptext" id="xptext">0 / 100 XP</span>
+          </div>
+        </div>
+        <div class="codebox">
+          <span class="lbl">Geçit kodu</span>
+          <span class="val" id="roomCode">------</span>
+          <div class="acts">
+            <button class="btn ghost small" type="button" id="copyCode">Kopyala</button>
+            <label class="btn ghost small" id="avatarBtn">Pixel art yükle
+              <input type="file" id="avatarInput" accept="image/png,image/jpeg,image/gif,image/webp" multiple hidden>
+            </label>
+          </div>
+        </div>
+      </div>
+      <div class="trail" id="trail" aria-label="Yolculuk haritası"></div>
+    </section>
+
+    <div class="main">
+      <section class="frame panel" aria-label="Görevler">
+        <h2>Görev Panosu
+          <span class="tabs">
+            <button class="tab" type="button" data-f="open" aria-pressed="true">Aktif</button>
+            <button class="tab" type="button" data-f="done" aria-pressed="false">Tamamlanan</button>
+          </span>
+        </h2>
+        <div class="status" id="status">Görevler yükleniyor…</div>
+        <div class="quests" id="quests"></div>
+      </section>
+
+      <div class="side">
+        <section class="frame panel" aria-label="Görev ver" id="assignPanel">
+          <h2>Görev Ver</h2>
+          <form id="addForm">
+            <label>Görev
+              <input id="qTitle" required maxlength="90" placeholder="Örn. 40 paragraf sorusu çöz">
+            </label>
+            <label>Ders
+              <select id="qSubject"></select>
+            </label>
+            <div class="tiers" role="radiogroup" aria-label="Zorluk">
+              <input type="radio" name="tier" id="t1" value="gunluk" checked><label for="t1">Günlük<span>+20 XP</span></label>
+              <input type="radio" name="tier" id="t2" value="hikaye"><label for="t2">Hikâye<span>+50 XP</span></label>
+              <input type="radio" name="tier" id="t3" value="efsane"><label for="t3">Efsanevi<span>+120 XP</span></label>
+            </div>
+            <button class="btn" type="submit" id="addBtn">Görevi panoya as</button>
+          </form>
+        </section>
+
+        <section class="frame panel" aria-label="Gezgin notu" id="heroNote" hidden>
+          <h2>Görevler Nereden Gelir?</h2>
+          <div class="note">
+            <span>Gezginler kendine görev veremez. Görevlerini <b>yoldaşların</b> verir.</span>
+            <span>Arkadaşlarına geçit kodunu ver: <b id="noteCode">------</b></span>
+          </div>
+        </section>
+
+        <section class="frame panel" aria-label="Yoldaşlar">
+          <h2>Yoldaşlar</h2>
+          <div class="members" id="members"></div>
+        </section>
+
+        <section class="frame panel" aria-label="Son tamamlananlar">
+          <h2>Macera Günlüğü</h2>
+          <div class="log" id="log"></div>
+        </section>
+      </div>
+    </div>
+
+    <section class="frame panel" aria-label="Dersler">
+      <h2>Yetenekler</h2>
+      <div class="skills" id="skills"></div>
+    </section>
+  </div>
+</div>
+
+<script type="module" src="app.js"></script>
+</body>
+</html>
