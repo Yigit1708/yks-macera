@@ -34,6 +34,18 @@
     <h1>YKS Macera Defteri</h1>
     <p class="muted" id="gateStatus">Defter açılıyor…</p>
 
+    <div class="startchoice" id="startChoice" hidden>
+      <p class="muted">Arkadaşların görev verir, gezgin tamamlar. YKS yolculuğu bir maceraya dönüşür.</p>
+      <button class="bigchoice primary" type="button" id="goWelcome">
+        <span class="bc-ico" aria-hidden="true">✦</span>
+        <span><b>Yeni hesap aç</b><small>İlk kez giriyorum</small></span>
+      </button>
+      <button class="bigchoice" type="button" id="goLogin">
+        <span class="bc-ico" aria-hidden="true">🔑</span>
+        <span><b>Giriş yap</b><small>Hesabım var, isim ve giriş koduyla gireceğim</small></span>
+      </button>
+    </div>
+
     <form id="welcomeForm" hidden>
       <p class="muted" style="text-align:center">Maceraya başlamadan önce kendini tanıt.</p>
       <label>İsim Soyisim
@@ -47,12 +59,14 @@
         <input id="codeIn" class="codein" inputmode="numeric" maxlength="6" placeholder="000000" autocomplete="off">
       </label>
       <div class="err" id="welcomeErr" role="alert"></div>
-      <button class="btn" type="submit" id="welcomeBtn">Devam et</button>
-      <button class="linkbtn" type="button" id="toLogin">Zaten hesabım var → Giriş yap</button>
+      <div class="formacts">
+        <button class="btn ghost" type="button" id="backFromWelcome">← Geri</button>
+        <button class="btn" type="submit" id="welcomeBtn">Devam et</button>
+      </div>
     </form>
 
     <form id="loginForm" hidden>
-      <p class="muted" style="text-align:center">Kaydolurken aldığın giriş koduyla gir.</p>
+      <p class="muted" style="text-align:center" id="loginIntro">Kaydolurken aldığın 6 haneli giriş koduyla gir.</p>
       <label>İsim Soyisim
         <input id="loginName" maxlength="40" autocomplete="name" placeholder="Örn. Ayşe Yılmaz">
       </label>
@@ -60,8 +74,10 @@
         <input id="loginCode" class="codein" inputmode="numeric" maxlength="6" placeholder="000000" autocomplete="off">
       </label>
       <div class="err" id="loginErr" role="alert"></div>
-      <button class="btn" type="submit" id="loginBtn">Giriş yap</button>
-      <button class="linkbtn" type="button" id="toWelcome">Yeni hesap aç</button>
+      <div class="formacts">
+        <button class="btn ghost" type="button" id="backFromLogin">← Geri</button>
+        <button class="btn" type="submit" id="loginBtn">🔑 Giriş yap</button>
+      </div>
     </form>
 
     <div class="codescreen" id="codeScreen" hidden>

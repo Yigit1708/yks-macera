@@ -243,3 +243,18 @@ form{display:grid;gap:10px}
 .trail .walker{bottom:auto;transform:translate(-50%,-100%);transition:left 1.2s cubic-bezier(.3,.7,.2,1),top 1.2s cubic-bezier(.3,.7,.2,1);z-index:2}
 .trail .walker::after{bottom:-3px}
 @media (max-width:480px){.trail .ms-label{width:80px;font-size:12px}}
+
+/* Giriş kapısı: ilk seçim ve form butonları */
+.startchoice{display:grid;gap:12px;text-align:left}
+.startchoice>p{text-align:center;margin:0 0 4px}
+.bigchoice{font:inherit;display:flex;align-items:center;gap:14px;width:100%;text-align:left;cursor:pointer;color:var(--fg);
+  background:#141b38;border:2px solid var(--line);border-radius:6px;padding:16px;box-shadow:4px 4px 0 rgba(0,0,0,.35);transition:transform .1s,border-color .15s,background .15s}
+.bigchoice:hover{border-color:var(--gold);background:#19214a}
+.bigchoice:active{transform:translate(2px,2px);box-shadow:2px 2px 0 rgba(0,0,0,.35)}
+.bigchoice:focus-visible{outline:2px solid #fff;outline-offset:2px}
+.bigchoice.primary{border-color:var(--gold2);background:linear-gradient(180deg,rgba(232,198,117,.16),rgba(232,198,117,.05))}
+.bigchoice .bc-ico{width:44px;height:44px;flex:none;display:grid;place-items:center;border-radius:50%;background:#0b1026;border:2px solid var(--gold2);color:var(--gold);font-size:20px}
+.bigchoice b{display:block;font-size:20px;color:var(--gold)}
+.bigchoice small{display:block;font-size:14px;color:var(--muted);margin-top:2px}
+.formacts{display:grid;grid-template-columns:auto 1fr;gap:10px;margin-top:4px}
+.formacts .btn{padding-block:12px;font-size:17px}

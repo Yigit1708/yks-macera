@@ -80,9 +80,8 @@ async function sessionExpired(){
   try{ await sb.auth.signOut({ scope:"local" }); }catch{}
   me=null; myName=null; myLoginCode=null;
   if(channel){ sb.removeChannel(channel); channel=null; }
-  $("app").hidden=true; $("gate").hidden=false; $("codeScreen").hidden=true; $("welcomeForm").hidden=true;
-  $("gateStatus").hidden=false; $("gateStatus").textContent="Oturumunun yenilenmesi gerekiyor. İsim soyisim ve giriş kodunla tekrar gir.";
-  $("loginForm").hidden=false; $("loginErr").textContent="";
+  $("app").hidden=true; $("gate").hidden=false;
+  showGate("login", "Oturumunun yenilenmesi gerekiyor. İsim soyisim ve giriş kodunla tekrar gir.");
 }
 
 /* ---------- giriş kapısı ---------- */
@@ -142,7 +141,7 @@ async function joinRoom(raw){
   return null;
 }
 function showCodes(login, room){
-  $("welcomeForm").hidden=true; $("loginForm").hidden=true; $("gateStatus").hidden=true;
+  showGate("code");
   $("bigLogin").textContent=fmtCode(login); $("copyLogin").onclick=()=>copyText(login);
   $("roomCodeCard").hidden=!room;
   if(room){ $("bigCode").textContent=fmtCode(room); $("copyBig").onclick=()=>copyText(room); }
@@ -151,8 +150,18 @@ function showCodes(login, room){
 }
 
 /* ---------- giriş (isim soyisim + giriş kodu) ---------- */
-$("toLogin").onclick=()=>{ $("welcomeForm").hidden=true; $("loginForm").hidden=false; $("loginErr").textContent=""; $("loginName").focus(); };
-$("toWelcome").onclick=()=>{ $("loginForm").hidden=true; $("welcomeForm").hidden=false; };
+// Giriş kapısındaki ekranlar: start (ilk seçim), welcome (yeni hesap), login, code, status
+function showGate(screen, msg){
+  $("gateStatus").hidden=screen!=="status"; if(screen==="status" && msg) $("gateStatus").textContent=msg;
+  $("startChoice").hidden=screen!=="start"; $("welcomeForm").hidden=screen!=="welcome";
+  $("loginForm").hidden=screen!=="login"; $("codeScreen").hidden=screen!=="code";
+  if(screen==="login"){ $("loginErr").textContent=""; $("loginIntro").textContent=msg||"Kaydolurken aldığın 6 haneli giriş koduyla gir."; $("loginName").focus(); }
+  if(screen==="welcome"){ $("welcomeErr").textContent=""; $("nameIn").focus(); }
+}
+$("goWelcome").onclick=()=>showGate("welcome");
+$("goLogin").onclick=()=>showGate("login");
+$("backFromWelcome").onclick=()=>showGate("start");
+$("backFromLogin").onclick=()=>showGate("start");
 $("loginForm").addEventListener("submit", async (e)=>{
   e.preventDefault();
   const name=$("loginName").value.trim().replace(/\s+/g," "), code=$("loginCode").value;
@@ -163,7 +172,7 @@ $("loginForm").addEventListener("submit", async (e)=>{
     const { status, data } = await callFn({ type:"login", name, code });
     if(status===200 && data?.access_token){
       await sb.auth.setSession({ access_token:data.access_token, refresh_token:data.refresh_token });
-      $("loginForm").hidden=true; $("gateStatus").hidden=false; $("gateStatus").textContent="Defter açılıyor…";
+      showGate("status", "Defter açılıyor…");
       await startFromSession();
     } else if(data?.error==="locked"){
       $("loginErr").textContent="Çok fazla yanlış deneme oldu. 15 dakika sonra tekrar dene.";
@@ -561,5 +570,5 @@ async function startFromSession(){
       }
     }
   }catch(err){ console.error(err); gs.textContent="Bağlanılamadı. İnternet bağlantını kontrol edip sayfayı yenile."; return; }
-  gs.hidden=true; $("welcomeForm").hidden=false;
+  showGate("start");
 }
