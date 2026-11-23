@@ -302,3 +302,7 @@ input,select,textarea{font-size:max(16px,1em)}
 .uparrow{display:inline-grid;place-items:center;width:26px;height:26px;border-radius:4px;background:#1f6b4a;color:#9dffcf;box-shadow:0 0 10px rgba(127,214,168,.8)}
 .uparrow svg{width:14px;height:16px;animation:upbob .7s steps(2) infinite}
 @keyframes upbob{50%{transform:translateY(-3px)}}
+
+/* Abyss kurukafası: parlama kısık, yüz hatları seçilsin */
+.ico svg:has(use[href="#el-abyss"]),.dot svg:has(use[href="#el-abyss"]),.sc-opt svg:has(use[href="#el-abyss"]){filter:drop-shadow(0 0 1px var(--c))}
+.sc-icon svg:has(use[href="#el-abyss"]){filter:drop-shadow(0 0 2px var(--c));animation:none}
