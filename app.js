@@ -439,7 +439,7 @@ $("addForm").addEventListener("submit", async (e)=>{
     notify("new", data.id).then((r)=>{
       if(r?.data?.sent>0) toast(`🔔 ${state.room?.hero_name||"Arkadaşına"} bildirim gitti`);
       else if(r?.data?.failed?.length){ const f=r.data.failed[0]; toast(`⚠️ Bildirim ${f.service==="apple"?"Apple (iPhone)":f.service} tarafından reddedildi: ${f.status||""} ${f.reason||""}`); }
-      else if(r?.data?.sent===0) toast(`🔕 ${state.room?.hero_name||"Arkadaşın"} bildirimleri açmamış. Uygulamada 🔔 Bildirimleri aç'a dokunmasını söyle.`);
+      else if(r?.data?.sent===0) toast(`🔕 ${state.room?.hero_name||"Arkadaşın"} bildirimleri açmamış. Uygulamadaki 🔕 Bildirimler kapalı butonuna dokunup açmasını söyle.`);
       else if(r?.status===401){ toast("Oturumun yenilenmeli. İsim soyisim ve giriş kodunla tekrar gir."); setTimeout(sessionExpired,1500); }
       else if(r && r.status!==200) toast("Bildirim gönderilemedi ("+(r.data?.error||r.status)+").");
     }); }
@@ -611,7 +611,27 @@ function setupInstall(){
 /* ---------- bildirimler ---------- */
 const pushSupported = "serviceWorker" in navigator && "PushManager" in window && "Notification" in window;
 function b64ToBytes(b64){ const pad="=".repeat((4-b64.length%4)%4); const s=atob((b64+pad).replace(/-/g,"+").replace(/_/g,"/")); return Uint8Array.from(s,(c)=>c.charCodeAt(0)); }
-function setBell(on){ $("bellBtn").setAttribute("aria-pressed",on); $("bellBtn").textContent=on?"🔔 Bildirimler açık":"🔔 Bildirimleri aç"; }
+function setBell(on){ $("bellBtn").setAttribute("aria-pressed",on); $("bellBtn").textContent=on?"🔔 Bildirimler açık":"🔕 Bildirimler kapalı";
+  $("bellBtn").title=on?"Kapatmak için dokun":"Açmak için dokun"; }
+// Piksel onay kutusu: "emin misin?" — evet/hayır sözü verir
+function askBox(text, yesLabel, noLabel="Vazgeç"){
+  return new Promise((resolve)=>{
+    const back=document.createElement("div"); back.className="askpop"; back.setAttribute("role","alertdialog"); back.setAttribute("aria-modal","true");
+    const card=document.createElement("div"); card.className="askcard frame";
+    const t=document.createElement("p"); t.textContent=text;
+    const row=document.createElement("div"); row.className="askrow";
+    const no=document.createElement("button"); no.type="button"; no.className="btn ghost"; no.textContent=noLabel;
+    const yes=document.createElement("button"); yes.type="button"; yes.className="btn danger"; yes.textContent=yesLabel;
+    const close=(v)=>{ back.remove(); removeEventListener("keydown",key); resolve(v); };
+    const key=(e)=>{ if(e.key==="Escape") close(false); };
+    no.onclick=()=>close(false); yes.onclick=()=>close(true); back.onclick=(e)=>{ if(e.target===back) close(false); };
+    addEventListener("keydown",key); row.append(no,yes); card.append(t,row); back.append(card); document.body.append(back); setTimeout(()=>no.focus(),0);
+  });
+}
+async function turnOffPush(){
+  const reg=await navigator.serviceWorker.ready; const sub=await reg.pushManager.getSubscription();
+  if(sub){ await sb.from("push_subs").delete().eq("endpoint", sub.endpoint); await sub.unsubscribe(); }
+}
 async function saveSub(sub){ const j=sub.toJSON();
   const { error } = await sb.from("push_subs").upsert({ endpoint:j.endpoint, user_id:me, p256dh:j.keys.p256dh, auth:j.keys.auth }); if(error) throw error; }
 async function setupBell(){
@@ -622,6 +642,13 @@ async function setupBell(){
     try{ const reg=await navigator.serviceWorker.ready; const sub=await reg.pushManager.getSubscription(); if(sub){ await saveSub(sub); setBell(true); } }catch{}
   }
   btn.onclick=async()=>{
+    if(btn.getAttribute("aria-pressed")==="true"){
+      const ok=await askBox(isHero()?"Bildirimler kapansın mı? Yeni görev ve hatırlatmalar artık telefonuna gelmez.":"Bildirimler kapansın mı? Arkadaşın görev bitirince artık haber gelmez.","Kapat");
+      if(!ok) return;
+      try{ await turnOffPush(); setBell(false); toast("🔕 Bildirimler kapatıldı. İstediğin zaman tekrar açabilirsin."); }
+      catch(err){ console.error(err); toast("Bildirimler kapatılamadı, tekrar dene."); }
+      return;
+    }
     if(!pushSupported){ toast("iPhone'da bildirim için önce Ana Ekrana Ekle, sonra oradan aç."); $("installCard").hidden=false; return; }
     try{
       const perm=await Notification.requestPermission();

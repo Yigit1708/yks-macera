@@ -15,7 +15,7 @@
 <meta name="apple-mobile-web-app-title" content="YKS Macera">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Pixelify+Sans:wght@400;500;600;700&family=Press+Start+2P&display=swap">
-<link rel="stylesheet" href="styles.css?v=24">
+<link rel="stylesheet" href="styles.css?v=25">
 </head>
 <body>
 <svg width="0" height="0" style="position:absolute" aria-hidden="true">
@@ -101,7 +101,7 @@
     <div class="topbar">
       <div class="who">Merhaba, <b id="meName"></b><span class="chip" id="meRole"></span></div>
       <select id="roomSel" aria-label="Hangi macera"></select>
-      <button class="btn ghost small bell" type="button" id="bellBtn" aria-pressed="false" hidden>🔔 Bildirimleri aç</button>
+      <button class="btn ghost small bell" type="button" id="bellBtn" aria-pressed="false" hidden>🔕 Bildirimler kapalı</button>
       <button class="btn ghost small" type="button" id="joinToggle">+ Arkadaşa katıl</button>
       <button class="btn ghost small" type="button" id="ownStart" hidden>Kendi maceramı başlat</button>
       <button class="btn ghost small" type="button" id="myCodeBtn" hidden>🔑 Giriş kodum</button>
@@ -128,7 +128,7 @@
           <li>Bu sayfayı <b>Safari</b>'de aç.</li>
           <li>Alttaki <b>Paylaş</b> düğmesine (kare ve yukarı ok) dokun.</li>
           <li><b>Ana Ekrana Ekle</b>'yi seç.</li>
-          <li>Ana ekrandaki <b>YKS Macera</b> ikonundan aç ve <b>🔔 Bildirimleri aç</b>'a dokun.</li>
+          <li>Ana ekrandaki <b>YKS Macera</b> ikonundan aç ve <b>🔕 Bildirimler kapalı</b>'a dokun.</li>
         </ol>
         <span class="muted">Bildirimler için iOS 16.4 veya daha yenisi gerekir.</span>
       </div>
@@ -234,7 +234,7 @@
 
 <script>
   // Uygulama dosyası çalışmazsa "açılıyor"da sonsuza kadar bekletme
-  window.__yksV = "24";
+  window.__yksV = "25";
   // iPhone Safari viewport ayarını yok sayabiliyor: iki parmakla yakınlaştırmayı da engelle
   ["gesturestart", "gesturechange", "gestureend"].forEach(function (ev) {
     document.addEventListener(ev, function (e) { e.preventDefault(); }, { passive: false });
