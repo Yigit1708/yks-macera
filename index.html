@@ -232,6 +232,29 @@
   </div>
 </div>
 
-<script type="module" src="app.js"></script>
+<script>
+  // Uygulama dosyası çalışmazsa "açılıyor"da sonsuza kadar bekletme
+  window.__yksV = "7";
+  window.__yksFail = function (msg) {
+    var s = document.getElementById("gateStatus"); if (!s) return;
+    s.hidden = false; s.textContent = msg;
+    if (document.getElementById("fixBtn")) return;
+    var b = document.createElement("button"); b.id = "fixBtn"; b.type = "button"; b.className = "btn"; b.textContent = "↻ Temizle ve yeniden yükle";
+    b.onclick = async function () {
+      b.disabled = true; b.textContent = "Temizleniyor…";
+      try { var regs = await navigator.serviceWorker.getRegistrations(); for (var r of regs) await r.unregister(); } catch (e) {}
+      try { var ks = await caches.keys(); for (var k of ks) await caches.delete(k); } catch (e) {}
+      location.replace(location.pathname + "?t=" + Date.now());
+    };
+    s.after(b);
+  };
+  window.addEventListener("error", function (e) { if (!window.__yksStarted) window.__yksFail("Uygulama başlatılamadı: " + (e.message || "bilinmeyen hata")); });
+  setTimeout(function () {
+    if (!window.__yksStarted) window.__yksFail("Uygulama dosyaları yüklenemedi (" + (window.__yksStep || "uygulama dosyası") + "). Aşağıdaki butona bas.");
+  }, 8000);
+  var sc = document.createElement("script"); sc.type = "module"; sc.src = "app.js?v=" + window.__yksV;
+  sc.onerror = function () { window.__yksFail("Uygulama dosyası indirilemedi. Aşağıdaki butona bas."); };
+  document.body.appendChild(sc);
+</script>
 </body>
 </html>

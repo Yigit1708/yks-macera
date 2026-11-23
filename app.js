@@ -1,6 +1,18 @@
 // YKS Macera Defteri — telefon (PWA) sürümü, Supabase ile
-import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.50.0/+esm";
-import { SUPABASE_URL, SUPABASE_ANON_KEY, VAPID_PUBLIC_KEY, NOTIFY_FUNCTION } from "./config.js";
+// Supabase kütüphanesi: önce jsDelivr, açılmazsa yedek adresler
+window.__yksStep = "kütüphane yükleniyor";
+let createClient = null;
+for (const src of [
+  "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.50.0/+esm",
+  "https://esm.sh/@supabase/supabase-js@2.50.0",
+  "https://unpkg.com/@supabase/supabase-js@2.50.0/dist/module/index.js?module",
+]) {
+  try { ({ createClient } = await import(src)); if (createClient) break; } catch (e) { console.warn("kütüphane yüklenemedi:", src, e); }
+}
+if (!createClient) { window.__yksFail?.("Supabase kütüphanesi indirilemedi. İnternet bağlantını ya da reklam engelleyiciyi kontrol et."); throw new Error("supabase-js yok"); }
+window.__yksStep = "ayarlar okunuyor";
+const { SUPABASE_URL, SUPABASE_ANON_KEY, VAPID_PUBLIC_KEY, NOTIFY_FUNCTION } = await import("./config.js?v=" + (window.__yksV || "0"));
+window.__yksStarted = true;
 
 /* ---------- sabitler ---------- */
 const ELEMENTS = {
