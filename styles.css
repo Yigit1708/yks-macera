@@ -344,3 +344,24 @@ input,select,textarea{font-size:max(16px,1em)}
 @keyframes lvdia{0%{transform:rotate(45deg) scale(0);opacity:0}100%{transform:rotate(45deg) scale(1);opacity:1}}
 @keyframes lvspin{to{transform:rotate(360deg)}}
 @media (max-width:380px){.lv-circle{width:124px;height:124px}.lv-icon{width:76px;height:76px}.lv-diamond{width:38px;height:38px}}
+
+/* Seviye atlama v2: ışınlar en arkada, yan elmaslar yerine pixel yıldızlar, iki kutu aynı tarz */
+.lv-top{position:relative;width:min(88vw,360px);height:220px;display:grid;place-items:center;gap:0}
+.lv-top .lv-rays{position:absolute;left:50%;top:50%;width:330px;height:330px;margin:-165px 0 0 -165px;inset:auto;z-index:0;opacity:.45}
+.lv-top .lv-ring{position:absolute;left:50%;top:50%;width:178px;height:178px;margin:-89px 0 0 -89px;inset:auto;z-index:1}
+.lv-top .lv-circle{position:relative;z-index:2}
+.lv-diamond{display:none}
+.px-star{position:absolute;z-index:3;display:block;transform:translate(-50%,-50%);image-rendering:pixelated;
+  animation:pxpop .45s steps(3) both,pxtwinkle 1.4s steps(2) infinite}
+.px-star svg{width:100%;height:100%;display:block}
+.px-star.c{color:var(--c);filter:drop-shadow(0 0 6px var(--c))}
+.px-star.gold{color:var(--gold);filter:drop-shadow(0 0 6px var(--gold))}
+.px-star.white{color:#fff;filter:drop-shadow(0 0 5px #fff)}
+@keyframes pxpop{from{transform:translate(-50%,-50%) scale(0)}}
+@keyframes pxtwinkle{0%,100%{opacity:1}50%{opacity:.35;transform:translate(-50%,-50%) scale(.7)}}
+/* Üst kutu da alttaki gibi: parşömen kutu */
+.lv-title{background:var(--parch);color:var(--ink);border:0;border-left:8px solid var(--c);border-radius:4px;
+  box-shadow:4px 4px 0 rgba(0,0,0,.45);text-shadow:none}
+.lv-title .lv-lv{color:var(--c);text-shadow:2px 2px 0 rgba(0,0,0,.25);filter:saturate(1.2) brightness(.85)}
+.lv-sub{font-size:17px}
+@media (max-width:380px){.lv-top{height:190px}.lv-top .lv-ring{width:152px;height:152px;margin:-76px 0 0 -76px}.lv-top .lv-rays{width:280px;height:280px;margin:-140px 0 0 -140px}}

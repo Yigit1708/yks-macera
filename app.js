@@ -557,8 +557,11 @@ function skillLevelUp(subjectId, from, to){
   pop.setAttribute("role","dialog"); pop.setAttribute("aria-label",`${s.name} yeteneği seviye atladı`);
   const fx=document.createElement("canvas"); fx.className="fx";
   const inner=document.createElement("div"); inner.className="lv-inner";
-  const star='<i class="lv-star"></i>';
-  inner.innerHTML=`<div class="lv-top"><div class="lv-diamond">${star}</div><div class="lv-circle"><div class="lv-rays"></div><div class="lv-ring"></div><div class="lv-icon">${icon(s.el)}</div></div><div class="lv-diamond r">${star}</div></div>
+  const PX_STAR=`<svg viewBox="0 0 9 9" aria-hidden="true" shape-rendering="crispEdges"><path fill="currentColor" d="M4 0h1v1H4zM4 1h1v1H4zM3 2h3v1H3zM2 3h5v1H2zM0 4h9v1H0zM2 5h5v1H2zM3 6h3v1H3zM4 7h1v1H4zM4 8h1v1H4z"/><path fill="#fff" d="M4 3h1v3H4zM3 4h3v1H3z"/></svg>`;
+  // Pixel yıldızlar: [sol%, üst%, boyut px, renk, gecikme]
+  const STARS=[[4,18,34,"c",0],[86,10,26,"gold",.3],[14,72,22,"white",.6],[92,64,36,"c",.15],[30,2,16,"white",.45],[70,86,18,"gold",.75],[0,46,14,"white",.9],[98,36,16,"c",1.05]];
+  const starsHtml=STARS.map(([l,t,z,c,d])=>`<i class="px-star ${c}" style="left:${l}%;top:${t}%;width:${z}px;height:${z}px;animation-delay:${.4+d}s,${.4+d}s">${PX_STAR}</i>`).join("");
+  inner.innerHTML=`<div class="lv-top"><div class="lv-rays"></div>${starsHtml}<div class="lv-ring"></div><div class="lv-circle"><div class="lv-icon">${icon(s.el)}</div></div></div>
     <div class="lv-title"><span class="lv-name"></span><span class="lv-lv">LV.${to}</span></div>
     <div class="lv-sub"><span class="lv-el"></span> yeteneğin güçlendi! Lv.${from} → Lv.${to}</div>
     <div class="hint">Devam etmek için dokun</div>`;
@@ -576,7 +579,7 @@ function skillLevelUp(subjectId, from, to){
     ps.push({x:cx,y:cy,vx:Math.cos(a)*v,vy:Math.sin(a)*v-2*dpr,s:Math.ceil((2+Math.random()*4)*dpr),c:cols[Math.random()*4|0],life:1}); } };
   const r=inner.querySelector(".lv-circle").getBoundingClientRect();
   burst((r.left+r.width/2)*dpr,(r.top+r.height/2)*dpr,120);
-  setTimeout(()=>{ inner.querySelectorAll(".lv-diamond").forEach((d)=>{ const b=d.getBoundingClientRect(); burst((b.left+b.width/2)*dpr,(b.top+b.height/2)*dpr,40); }); },450);
+  setTimeout(()=>{ inner.querySelectorAll(".px-star").forEach((d,i)=>{ if(i%2) return; const b=d.getBoundingClientRect(); burst((b.left+b.width/2)*dpr,(b.top+b.height/2)*dpr,14); }); },500);
   (function tick(){ if(stop) return; x.clearRect(0,0,W,H);
     ps=ps.filter((p)=>p.life>0);
     ps.forEach((p)=>{ p.x+=p.vx; p.y+=p.vy; p.vy+=.1*dpr; p.vx*=.985; p.life-=.008;
