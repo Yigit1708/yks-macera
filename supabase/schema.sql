@@ -59,6 +59,11 @@ create table if not exists public.push_subs (
   created_at timestamptz not null default now()
 );
 
+-- Data API erişimi (proje "Grant API access to new tables automatically" kapalı açılmışsa gerekli).
+-- Satır bazında kim neyi görür/değiştirir, aşağıdaki RLS kuralları belirler.
+grant usage on schema public to anon, authenticated;
+grant select, insert, update, delete on public.profiles, public.rooms, public.members, public.quests, public.push_subs to authenticated;
+
 -- ============ YARDIMCI FONKSİYONLAR ============
 
 create or replace function public.is_member(p_code text)
