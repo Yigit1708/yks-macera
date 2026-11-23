@@ -27,7 +27,7 @@ const SUBJECTS = [
   {id:"din",name:"Din Kültürü",el:"geo"}, {id:"deneme",name:"Deneme",el:"all"},
 ];
 const CHOOSABLE = ["pyro","hydro","anemo","electro","dendro","cryo","geo","abyss"];
-const MASKED = ["pyro","hydro","anemo","electro","dendro","cryo","geo"];
+const MASKED = ["pyro","hydro","anemo","electro","dendro","cryo","geo","abyss"];
 const TIERS = {gunluk:{n:"Günlük",xp:20}, hikaye:{n:"Hikâye",xp:50}, efsane:{n:"Efsanevi",xp:120}};
 const MILESTONES = [{xp:0,n:"Başlangıç Köyü"},{xp:600,n:"TYT Ormanı"},{xp:1600,n:"AYT Dağları"},{xp:3200,n:"Deneme Kalesi"},{xp:5500,n:"Üniversite Kapısı"}];
 const GOAL = MILESTONES[MILESTONES.length-1].xp;
