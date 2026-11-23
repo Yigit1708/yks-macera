@@ -15,11 +15,11 @@
 <meta name="apple-mobile-web-app-title" content="YKS Macera">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Pixelify+Sans:wght@400;500;600;700&family=Press+Start+2P&display=swap">
-<link rel="stylesheet" href="styles.css?v=21">
+<link rel="stylesheet" href="styles.css?v=22">
 </head>
 <body>
 <svg width="0" height="0" style="position:absolute" aria-hidden="true">
-  <symbol id="el-abyss" viewBox="0 0 24 24"><path fill="currentColor" fill-rule="evenodd" d="M10.72 2.59A9.5 9.5 0 1 0 21.1 14.7A8 8 0 1 1 10.72 2.59zM8.4 14a1.4 1.4 0 1 0-2.8 0 1.4 1.4 0 1 0 2.8 0z"/><path fill="#0b0f22" d="M8.4 14a1.4 1.4 0 1 0-2.8 0 1.4 1.4 0 1 0 2.8 0z"/><path fill="currentColor" d="M16 4.6l1 2.6 2.6 1-2.6 1-1 2.6-1-2.6-2.6-1 2.6-1zM20.3 1.6l.5 1.2 1.2.5-1.2.5-.5 1.2-.5-1.2-1.2-.5 1.2-.5z"/></symbol>
+  <symbol id="el-abyss" viewBox="0 0 24 24"><path fill="currentColor" d="M10.72 2.59A9.5 9.5 0 1 0 21.1 14.7A8 8 0 1 1 10.72 2.59z"/><path fill="currentColor" d="M16 4.6l1 2.6 2.6 1-2.6 1-1 2.6-1-2.6-2.6-1 2.6-1zM20.3 1.6l.5 1.2 1.2.5-1.2.5-.5 1.2-.5-1.2-1.2-.5 1.2-.5z"/></symbol>
   <symbol id="el-all" viewBox="0 0 24 24"><path fill="currentColor" d="M12 1.5 14.3 9.7 22.5 12 14.3 14.3 12 22.5 9.7 14.3 1.5 12 9.7 9.7z"/><circle cx="12" cy="12" r="2" fill="#141b38" fill-opacity=".5"/></symbol>
 </svg>
 <canvas id="stars"></canvas>
@@ -234,7 +234,7 @@
 
 <script>
   // Uygulama dosyası çalışmazsa "açılıyor"da sonsuza kadar bekletme
-  window.__yksV = "21";
+  window.__yksV = "22";
   // iPhone Safari viewport ayarını yok sayabiliyor: iki parmakla yakınlaştırmayı da engelle
   ["gesturestart", "gesturechange", "gestureend"].forEach(function (ev) {
     document.addEventListener(ev, function (e) { e.preventDefault(); }, { passive: false });
