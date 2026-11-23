@@ -445,11 +445,12 @@ $("addForm").addEventListener("submit", async (e)=>{
 });
 async function complete(q,btn){
   if(!isHero()) return;
-  btn.disabled=true; const before=stats().ar;
+  btn.disabled=true; const before=stats().ar; const lvBefore=Math.floor(stats().per[q.subject].xp/150)+1;
   const { error } = await sb.rpc("complete_quest", { p_id:q.id });
   if(error){ btn.disabled=false; toast("Görev kaydedilemedi, tekrar dene."); return; }
   q.done=true; q.done_at=new Date().toISOString(); const after=stats().ar;
-  celebrate(q, after>before?after:0);
+  const lvAfter=Math.floor(stats().per[q.subject].xp/150)+1;
+  celebrate(q, after>before?after:0, lvAfter>lvBefore ? ()=>skillLevelUp(q.subject, lvBefore, lvAfter) : null);
   notify("done", q.id).then((r)=>{ if(r?.data?.sent===0) setTimeout(()=>toast("🔕 Görevi veren kişi bildirimleri açmamış, ona haber gitmedi."),2500); });
   render();
 }
@@ -509,7 +510,7 @@ $("avatarInput").addEventListener("change", async (e)=>{
 function chime(){ try{ const ac=new (window.AudioContext||window.webkitAudioContext)();
   [659,784,988,1319].forEach((f,i)=>{ const o=ac.createOscillator(), g=ac.createGain(); o.type="square"; o.frequency.value=f; const t=ac.currentTime+i*.11;
     g.gain.setValueAtTime(0,t); g.gain.linearRampToValueAtTime(.08,t+.02); g.gain.exponentialRampToValueAtTime(.001,t+.5); o.connect(g).connect(ac.destination); o.start(t); o.stop(t+.55); }); }catch{} }
-function celebrate(q,newAr){
+function celebrate(q,newAr,onClose){
   chime(); try{ navigator.vibrate?.([60,40,120]); }catch{}
   const pop=document.createElement("div"); pop.className="pop"; pop.setAttribute("role","dialog"); pop.setAttribute("aria-label","Görev tamamlandı");
   const fx=document.createElement("canvas"); fx.className="fx";
@@ -533,7 +534,7 @@ function celebrate(q,newAr){
   pop.append(fx,inner); document.body.append(pop);
   let stop=false;
   function k(e){ if(e.key==="Escape"||e.key==="Enter") close(); }
-  function close(){ pop.remove(); stop=true; document.removeEventListener("keydown",k); }
+  function close(){ if(stop) return; pop.remove(); stop=true; document.removeEventListener("keydown",k); if(onClose) setTimeout(onClose,250); }
   pop.onclick=close; document.addEventListener("keydown",k);
   if(matchMedia("(prefers-reduced-motion: reduce)").matches) return;
   const dpr=Math.min(devicePixelRatio||1,2); const W=fx.width=innerWidth*dpr, H=fx.height=innerHeight*dpr; const x=fx.getContext("2d");
@@ -543,6 +544,44 @@ function celebrate(q,newAr){
     ps.forEach((p)=>{ if(p.life<=0) return; alive++; p.x+=p.vx; p.y+=p.vy; p.vy+=.12*dpr; p.vx*=.985; p.life-=.009;
       x.globalAlpha=Math.max(p.life,0); x.fillStyle=p.c; x.fillRect(Math.round(p.x),Math.round(p.y),p.s,p.s); });
     if(alive) requestAnimationFrame(tick); })();
+}
+
+/* ---------- yetenek seviye atlama ---------- */
+function levelChime(){ try{ const ac=new (window.AudioContext||window.webkitAudioContext)();
+  [523,659,784,1047,1319,1568].forEach((f,i)=>{ const o=ac.createOscillator(), g=ac.createGain(); o.type="square"; o.frequency.value=f; const t=ac.currentTime+i*.09;
+    g.gain.setValueAtTime(0,t); g.gain.linearRampToValueAtTime(.07,t+.02); g.gain.exponentialRampToValueAtTime(.001,t+.6); o.connect(g).connect(ac.destination); o.start(t); o.stop(t+.65); }); }catch{} }
+function skillLevelUp(subjectId, from, to){
+  const s=subj(subjectId);
+  levelChime(); try{ navigator.vibrate?.([40,30,40,30,160]); }catch{}
+  const pop=document.createElement("div"); pop.className="pop lvpop"; pop.style.setProperty("--c", s.c);
+  pop.setAttribute("role","dialog"); pop.setAttribute("aria-label",`${s.name} yeteneği seviye atladı`);
+  const fx=document.createElement("canvas"); fx.className="fx";
+  const inner=document.createElement("div"); inner.className="lv-inner";
+  const star='<i class="lv-star"></i>';
+  inner.innerHTML=`<div class="lv-top"><div class="lv-diamond">${star}</div><div class="lv-circle"><div class="lv-rays"></div><div class="lv-ring"></div><div class="lv-icon">${icon(s.el)}</div></div><div class="lv-diamond r">${star}</div></div>
+    <div class="lv-title"><span class="lv-name"></span><span class="lv-lv">LV.${to}</span></div>
+    <div class="lv-sub"><span class="lv-el"></span> yeteneğin güçlendi! Lv.${from} → Lv.${to}</div>
+    <div class="hint">Devam etmek için dokun</div>`;
+  inner.querySelector(".lv-name").textContent=s.name;
+  inner.querySelector(".lv-el").textContent=s.eln;
+  pop.append(fx,inner); document.body.append(pop);
+  let stop=false;
+  function k(e){ if(e.key==="Escape"||e.key==="Enter") close(); }
+  function close(){ if(stop) return; stop=true; pop.remove(); document.removeEventListener("keydown",k); }
+  pop.onclick=close; document.addEventListener("keydown",k);
+  if(matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+  const dpr=Math.min(devicePixelRatio||1,2); const W=fx.width=innerWidth*dpr, H=fx.height=innerHeight*dpr; const x=fx.getContext("2d");
+  const cols=[s.c,s.c,"#ffffff","#e8c675"];
+  let ps=[]; const burst=(cx,cy,n)=>{ for(let i=0;i<n;i++){ const a=Math.random()*Math.PI*2, v=(1.5+Math.random()*6)*dpr;
+    ps.push({x:cx,y:cy,vx:Math.cos(a)*v,vy:Math.sin(a)*v-2*dpr,s:Math.ceil((2+Math.random()*4)*dpr),c:cols[Math.random()*4|0],life:1}); } };
+  const r=inner.querySelector(".lv-circle").getBoundingClientRect();
+  burst((r.left+r.width/2)*dpr,(r.top+r.height/2)*dpr,120);
+  setTimeout(()=>{ inner.querySelectorAll(".lv-diamond").forEach((d)=>{ const b=d.getBoundingClientRect(); burst((b.left+b.width/2)*dpr,(b.top+b.height/2)*dpr,40); }); },450);
+  (function tick(){ if(stop) return; x.clearRect(0,0,W,H);
+    ps=ps.filter((p)=>p.life>0);
+    ps.forEach((p)=>{ p.x+=p.vx; p.y+=p.vy; p.vy+=.1*dpr; p.vx*=.985; p.life-=.008;
+      x.globalAlpha=Math.max(p.life,0); x.fillStyle=p.c; x.fillRect(Math.round(p.x),Math.round(p.y),p.s,p.s); });
+    requestAnimationFrame(tick); })();
 }
 
 /* ---------- yıldızlı arka plan ---------- */
