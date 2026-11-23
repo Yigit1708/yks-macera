@@ -350,6 +350,9 @@ function renderQuests(){
     mid.append(h,meta);
     const act=document.createElement("div"); act.className="q-actions";
     if(!q.done && hero){ const b=document.createElement("button"); b.className="btn small"; b.type="button"; b.textContent="Tamamla"; b.onclick=()=>complete(q,b); act.append(b); }
+    if(!q.done && !hero){ const bell=document.createElement("button"); bell.type="button"; bell.className="bellbtn";
+      bell.title="Gezgine hatırlat"; bell.setAttribute("aria-label",`${state.room?.hero_name||"Gezgin"}'e bu görevi hatırlat`);
+      bell.innerHTML=BELL_SVG; if(remindWait(q.id)>0) bell.classList.add("cool"); bell.onclick=()=>remindQuest(q,bell); act.append(bell); }
     if(q.from_id===me){ const x=document.createElement("button"); x.className="x"; x.type="button"; x.title="Görevi sil"; x.setAttribute("aria-label","Görevi sil"); x.textContent="×"; x.onclick=()=>removeQuest(q,x); act.append(x); }
     el.append(ico,mid,act); box.append(el);
   });
@@ -440,6 +443,25 @@ async function complete(q,btn){
   celebrate(q, after>before?after:0);
   notify("done", q.id).then((r)=>{ if(r?.data?.sent===0) setTimeout(()=>toast("🔕 Görevi veren kişi bildirimleri açmamış, ona haber gitmedi."),2500); });
   render();
+}
+// ---------- hatırlatma çanı ----------
+const BELL_SVG='<svg viewBox="0 0 10 9" aria-hidden="true" shape-rendering="crispEdges"><path fill="currentColor" d="M4 0h2v1h1v1h1v3h1v1h1v1H0V6h1V5h1V2h1V1h1z"/><path fill="currentColor" d="M4 8h2v1H4z"/><path fill="#fff" fill-opacity=".55" d="M3 2h1v2H3z"/></svg>';
+const REMIND_MS=5*60*1000;
+const remindWait=(id)=>{ const t=Number(store.get("yks-remind-"+id)||0); return Math.max(0, REMIND_MS-(Date.now()-t)); };
+async function remindQuest(q,btn){
+  const w=remindWait(q.id);
+  if(w>0){ toast(`Bu görevi az önce hatırlattın. ${Math.ceil(w/60000)} dakika sonra tekrar çalabilirsin.`); return; }
+  btn.disabled=true; btn.classList.add("ring");
+  const r=await callFn({ type:"remind", quest_id:q.id }).catch(()=>null);
+  setTimeout(()=>btn.classList.remove("ring"),900); btn.disabled=false;
+  const name=state.room?.hero_name||"Gezgin";
+  if(r?.status===200 && r.data?.sent>0){ store.set("yks-remind-"+q.id, String(Date.now())); btn.classList.add("cool"); toast(`🔔 ${name}'e hatırlatma gitti!`); }
+  else if(r?.status===200 && r.data?.failed?.length){ toast("⚠️ Hatırlatma telefona ulaşmadı: "+(r.data.failed[0].reason||r.data.failed[0].status)); }
+  else if(r?.status===200){ toast(`🔕 ${name} bildirimleri açmamış, hatırlatma gidemedi.`); }
+  else if(r?.status===429){ store.set("yks-remind-"+q.id, String(Date.now())); btn.classList.add("cool"); toast("Bu görevi az önce hatırlattın, biraz bekle."); }
+  else if(r?.data?.error==="already_done"){ toast("Bu görev zaten tamamlanmış 🎉"); refreshQuests(); }
+  else if(r?.status===401){ toast("Oturumun yenilenmeli. İsim soyisim ve giriş kodunla tekrar gir."); setTimeout(sessionExpired,1500); }
+  else toast("Hatırlatma gönderilemedi"+(r?.data?.error?` (${r.data.error})`:"")+".");
 }
 const pendingDelete=new Set();
 async function removeQuest(q,btn){

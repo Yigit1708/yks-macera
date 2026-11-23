@@ -1,5 +1,5 @@
 // YKS Macera Defteri — servis çalışanı: çevrimdışı kabuk + bildirimler
-const CACHE = "yks-macera-v10";
+const CACHE = "yks-macera-v11";
 const SHELL = ["./", "./index.html", "./styles.css", "./app.js", "./config.js", "./manifest.webmanifest",
   "./icons/icon-192.png", "./icons/icon-512.png", "./icons/apple-touch-icon.png"];
 
@@ -32,6 +32,7 @@ self.addEventListener("push", (e) => {
     icon: "icons/icon-192.png",
     badge: "icons/icon-192.png",
     tag: d.tag,
+    renotify: !!d.tag,
     data: { url: d.url || "./" },
     vibrate: [80, 40, 80],
   }));

@@ -265,3 +265,14 @@ form{display:grid;gap:10px}
 /* Mobilde yakınlaştırma yok: çift dokunuşla zoom'u kapat */
 html,body{touch-action:manipulation;-webkit-text-size-adjust:100%;text-size-adjust:100%}
 input,select,textarea{font-size:max(16px,1em)}
+
+/* Hatırlatma çanı (yoldaşlar, bitmemiş görevlerde) */
+.bellbtn{width:36px;height:36px;flex:none;display:grid;place-items:center;cursor:pointer;padding:0;color:var(--gold);
+  background:#141b38;border:2px solid var(--gold2);border-radius:4px;box-shadow:2px 2px 0 rgba(0,0,0,.35)}
+.bellbtn svg{width:20px;height:18px;image-rendering:pixelated;filter:drop-shadow(0 0 3px rgba(232,198,117,.6))}
+.bellbtn:hover{background:#1f2a5a}
+.bellbtn:active{transform:translate(1px,1px);box-shadow:1px 1px 0 rgba(0,0,0,.35)}
+.bellbtn:focus-visible{outline:2px solid #fff;outline-offset:2px}
+.bellbtn.cool{opacity:.5;filter:grayscale(.6)}
+.bellbtn.ring svg{animation:ring .9s steps(6)}
+@keyframes ring{0%,100%{transform:rotate(0)}15%{transform:rotate(-22deg)}30%{transform:rotate(18deg)}45%{transform:rotate(-14deg)}60%{transform:rotate(10deg)}75%{transform:rotate(-5deg)}}

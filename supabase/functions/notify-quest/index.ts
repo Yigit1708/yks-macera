@@ -143,11 +143,18 @@ async function notify(req: Request, type: string, quest_id: string) {
   const { data: claimed } = await db.from("quests").update({ [flag]: true }).eq("id", q.id).eq(flag, false).select("id");
   if (!claimed?.length) return json({ skipped: true, reason: "already_sent" });
 
+  return json(await pushTo(db, recipient, { title, body, url: "./", tag: `quest-${q.id}-${type}` }));
+}
+
+// Bir kişinin bütün telefonlarına bildirim gönder
+// deno-lint-ignore no-explicit-any
+async function pushTo(db: any, recipient: string, msg: Record<string, unknown>) {
   const { data: subs } = await db.from("push_subs").select("*").eq("user_id", recipient);
-  const payload = JSON.stringify({ title, body, url: "./", tag: `quest-${q.id}-${type}` });
+  const payload = JSON.stringify(msg);
   let sent = 0;
   const failed: { service: string; status?: number; reason: string }[] = [];
-  await Promise.all((subs ?? []).map(async (s) => {
+  // deno-lint-ignore no-explicit-any
+  await Promise.all((subs ?? []).map(async (s: any) => {
     const service = s.endpoint.includes("apple.com") ? "apple" : s.endpoint.includes("google") ? "google" : new URL(s.endpoint).host;
     try {
       await webpush.sendNotification({ endpoint: s.endpoint, keys: { p256dh: s.p256dh, auth: s.auth } }, payload, { TTL: 60 * 60 * 24, urgency: "high" });
@@ -160,7 +167,40 @@ async function notify(req: Request, type: string, quest_id: string) {
       failed.push({ service, status: err.statusCode, reason });
     }
   }));
-  return json({ sent, devices: subs?.length ?? 0, failed });
+  return { sent, devices: subs?.length ?? 0, failed };
+}
+
+// Yoldaş, bitmemiş bir görev için gezgine "hadi yap" hatırlatması gönderir
+const REMIND_GAP_MS = 5 * 60 * 1000;
+const lastRemind = new Map<string, number>(); // aynı kişi aynı görev için 5 dakikada bir
+async function remind(req: Request, quest_id: string) {
+  await setupVapid();
+  if (vapidError) return json({ error: vapidError }, 500);
+  const user = await callerOf(req);
+  if (!user) return json({ error: "not_authenticated" }, 401);
+  if (typeof quest_id !== "string") return json({ error: "bad_request" }, 400);
+
+  const db = admin();
+  const { data: q } = await db.from("quests").select("*").eq("id", quest_id).maybeSingle();
+  if (!q) return json({ error: "not_found" }, 404);
+  if (q.done) return json({ error: "already_done" }, 409);
+  const { data: room } = await db.from("rooms").select("hero_id, hero_name").eq("code", q.room_code).single();
+  if (room!.hero_id === user.id) return json({ error: "hero_cannot_remind" }, 403);
+  const { data: mem } = await db.from("members").select("user_id").eq("room_code", q.room_code).eq("user_id", user.id).maybeSingle();
+  if (!mem) return json({ error: "not_member" }, 403);
+
+  const key = user.id + ":" + q.id;
+  const last = lastRemind.get(key) ?? 0;
+  if (Date.now() - last < REMIND_GAP_MS) return json({ error: "too_soon", wait_s: Math.ceil((REMIND_GAP_MS - (Date.now() - last)) / 1000) }, 429);
+  lastRemind.set(key, Date.now());
+
+  const { data: me } = await db.from("profiles").select("name").eq("id", user.id).single();
+  return json(await pushTo(db, room!.hero_id, {
+    title: "🔔 Hatırlatma!",
+    body: `${me?.name ?? "Bir yoldaş"} dürtüyor: "${q.title}" görevi seni bekliyor (+${q.xp} XP) ⚔️`,
+    url: "./",
+    tag: `remind-${q.id}`,
+  }));
 }
 
 // ---------- giriş noktası ----------
@@ -180,6 +220,7 @@ Deno.serve(async (req) => {
       case "login":      return await login(req, b.name, b.code);
       case "new":
       case "done":    return await notify(req, b.type, b.quest_id);
+      case "remind":  return await remind(req, b.quest_id);
       default:        return json({ error: "bad_request" }, 400);
     }
   } catch (e) {
