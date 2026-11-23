@@ -1,6 +1,6 @@
 // YKS Macera Defteri — telefon (PWA) sürümü, Supabase ile
 import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.50.0/+esm";
-import { SUPABASE_URL, SUPABASE_ANON_KEY, VAPID_PUBLIC_KEY } from "./config.js";
+import { SUPABASE_URL, SUPABASE_ANON_KEY, VAPID_PUBLIC_KEY, NOTIFY_FUNCTION } from "./config.js";
 
 /* ---------- sabitler ---------- */
 const ELEMENTS = {
@@ -56,7 +56,7 @@ async function copyText(txt){ try{ await navigator.clipboard.writeText(txt); toa
 function fmtDate(t){ try{ return new Date(t).toLocaleDateString("tr-TR",{day:"numeric",month:"short"}); }catch{ return ""; } }
 const initials = (n) => (n||"?").trim().split(/\s+/).map((w)=>w[0]).slice(0,2).join("").toLocaleUpperCase("tr-TR");
 const nameOf = (id) => state.members[id]?.name || "Bir yoldaş";
-const notify = (type, quest_id) => sb.functions.invoke("notify-quest", { body:{ type, quest_id } }).catch(()=>{});
+const notify = (type, quest_id) => sb.functions.invoke(NOTIFY_FUNCTION, { body:{ type, quest_id } }).catch(()=>{});
 
 /* ---------- giriş kapısı ---------- */
 let role = null;

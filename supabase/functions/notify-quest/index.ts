@@ -4,7 +4,8 @@
 //   { type: "done", quest_id }  → gezgin bitirdi     → görevi verenin telefonuna bildirim
 // Gerekli gizli değişkenler (Edge Functions → Secrets):
 //   VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY, VAPID_SUBJECT (ör. mailto:sen@ornek.com)
-import webpush from "npm:web-push@3.6.7";
+// deno-lint-ignore no-explicit-any
+let webpush: any = null;
 import { createClient } from "npm:@supabase/supabase-js@2.50.0";
 
 const cors = {
@@ -18,17 +19,35 @@ const json = (body: unknown, status = 200) =>
 const URL_ = Deno.env.get("SUPABASE_URL")!;
 const ANON = Deno.env.get("SUPABASE_ANON_KEY")!;
 const SERVICE = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-webpush.setVapidDetails(
-  Deno.env.get("VAPID_SUBJECT") ?? "mailto:yks-macera@example.com",
-  Deno.env.get("VAPID_PUBLIC_KEY")!,
-  Deno.env.get("VAPID_PRIVATE_KEY")!,
-);
+
+// Anahtarları ilk istekte kur; hata olursa fonksiyon çökmesin, nedenini söylesin.
+let vapidError: string | null = null, vapidReady = false;
+async function setupVapid() {
+  if (vapidReady) return;
+  if (!webpush) {
+    try { webpush = (await import("npm:web-push@3.6.7")).default; }
+    catch (e) { vapidError = "web-push yüklenemedi: " + (e as Error).message; return; }
+  }
+  const pub = (Deno.env.get("VAPID_PUBLIC_KEY") ?? "").trim();
+  const priv = (Deno.env.get("VAPID_PRIVATE_KEY") ?? "").trim();
+  let subj = (Deno.env.get("VAPID_SUBJECT") ?? "").trim();
+  if (!pub) { vapidError = "VAPID_PUBLIC_KEY secret eksik"; return; }
+  if (!priv) { vapidError = "VAPID_PRIVATE_KEY secret eksik"; return; }
+  if (!subj || subj.includes("KENDI-EPOSTAN")) subj = "mailto:yks-macera@example.com";
+  if (!/^(mailto:|https:)/.test(subj)) subj = "mailto:" + subj;
+  try { webpush.setVapidDetails(subj, pub, priv); vapidReady = true; vapidError = null; }
+  catch (e) { vapidError = "VAPID anahtarları geçersiz: " + (e as Error).message; }
+}
 
 const FRESH_MS = 10 * 60 * 1000; // sadece son 10 dakikadaki olaylar için bildirim
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: cors });
+  await setupVapid();
   try {
+    const peek = await req.clone().json().catch(() => ({}));
+    if (peek?.type === "ping") return json({ ok: !vapidError, vapid: vapidError ?? "hazır" });
+    if (vapidError) return json({ error: vapidError }, 500);
     // Çağıranı doğrula
     const userClient = createClient(URL_, ANON, { global: { headers: { Authorization: req.headers.get("Authorization") ?? "" } } });
     const { data: { user } } = await userClient.auth.getUser();
