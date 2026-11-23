@@ -31,6 +31,8 @@ const MASKED = ["pyro","hydro","anemo","electro","dendro","cryo","geo"];
 const TIERS = {gunluk:{n:"Günlük",xp:20}, hikaye:{n:"Hikâye",xp:50}, efsane:{n:"Efsanevi",xp:120}};
 const MILESTONES = [{xp:0,n:"Başlangıç Köyü"},{xp:600,n:"TYT Ormanı"},{xp:1600,n:"AYT Dağları"},{xp:3200,n:"Deneme Kalesi"},{xp:5500,n:"Üniversite Kapısı"}];
 const GOAL = MILESTONES[MILESTONES.length-1].xp;
+// Yetenek seviyesi: Lv.1→2 için 150 XP, sonra her seviye 50 XP daha fazla ister (150, 200, 250…)
+function skillLv(xp){ let lv=1, need=150; while(xp>=need){ xp-=need; lv++; need+=50; } return { lv, cur:xp, need }; }
 
 const $ = (id) => document.getElementById(id);
 const icon = (el) => MASKED.includes(el) ? `<i class="elm m-${el}" aria-hidden="true"></i>` : `<svg viewBox="0 0 24 24" aria-hidden="true"><use href="#el-${el}"/></svg>`;
@@ -383,7 +385,7 @@ function renderSkills(){
   const s=stats(); const box=$("skills"); box.replaceChildren();
   const canSwap=isHero();
   SUBJECTS.map((x)=>subj(x.id)).forEach((sb_,idx)=>{
-    const p=s.per[sb_.id]; const lv=Math.floor(p.xp/150)+1; const cur=p.xp%150;
+    const p=s.per[sb_.id]; const { lv, cur, need }=skillLv(p.xp);
     const d=document.createElement("article"); d.className="scard"; d.style.setProperty("--c",sb_.c);
     let seed=(idx+1)*9301; const rnd=()=>((seed=(seed*16807)%2147483647)/2147483647);
     let sky=`<div class="sc-sky"><div class="sc-mark">${icon(sb_.el)}</div>`;
@@ -392,8 +394,8 @@ function renderSkills(){
     for(let i=0;i<14;i++) sky+=`<i class="sc-dot" style="left:${(26+rnd()*72).toFixed(1)}%;top:${(4+rnd()*90).toFixed(1)}%;opacity:${(.2+rnd()*.5).toFixed(2)}"></i>`;
     sky+=`</div><span class="sc-ornament" aria-hidden="true">✦</span>`;
     d.innerHTML=sky+`<div class="sc-icon">${icon(sb_.el)}</div><div class="sc-head"><span class="sc-el"></span><h3 class="sc-name"></h3></div>
-      <div class="sc-foot"><div class="sc-row"><span class="sc-lv">Lv.${lv}</span><span class="sc-xp">${cur} / 150 XP</span></div>
-      <div class="sc-bar"><i style="width:${cur/150*100}%"></i></div><div class="sc-count"></div></div>`;
+      <div class="sc-foot"><div class="sc-row"><span class="sc-lv">Lv.${lv}</span><span class="sc-xp">${cur} / ${need} XP</span></div>
+      <div class="sc-bar"><i style="width:${cur/need*100}%"></i></div><div class="sc-count"></div></div>`;
     d.querySelector(".sc-el").textContent=sb_.eln; d.querySelector(".sc-name").textContent=sb_.name;
     d.querySelector(".sc-count").textContent=`${p.done} görev bitti${p.open?` · ${p.open} bekliyor`:""}`;
     if(canSwap && sb_.id!=="deneme"){
@@ -445,11 +447,11 @@ $("addForm").addEventListener("submit", async (e)=>{
 });
 async function complete(q,btn){
   if(!isHero()) return;
-  btn.disabled=true; const before=stats().ar; const lvBefore=Math.floor(stats().per[q.subject].xp/150)+1;
+  btn.disabled=true; const before=stats().ar; const lvBefore=skillLv(stats().per[q.subject].xp).lv;
   const { error } = await sb.rpc("complete_quest", { p_id:q.id });
   if(error){ btn.disabled=false; toast("Görev kaydedilemedi, tekrar dene."); return; }
   q.done=true; q.done_at=new Date().toISOString(); const after=stats().ar;
-  const lvAfter=Math.floor(stats().per[q.subject].xp/150)+1;
+  const lvAfter=skillLv(stats().per[q.subject].xp).lv;
   celebrate(q, after>before?after:0, lvAfter>lvBefore ? ()=>skillLevelUp(q.subject, lvBefore, lvAfter) : null);
   notify("done", q.id).then((r)=>{ if(r?.data?.sent===0) setTimeout(()=>toast("🔕 Görevi veren kişi bildirimleri açmamış, ona haber gitmedi."),2500); });
   render();
