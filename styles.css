@@ -365,3 +365,9 @@ input,select,textarea{font-size:max(16px,1em)}
 .lv-title .lv-lv{color:var(--c);text-shadow:2px 2px 0 rgba(0,0,0,.25);filter:saturate(1.2) brightness(.85)}
 .lv-sub{font-size:17px}
 @media (max-width:380px){.lv-top{height:190px}.lv-top .lv-ring{width:152px;height:152px;margin:-76px 0 0 -76px}.lv-top .lv-rays{width:280px;height:280px;margin:-140px 0 0 -140px}}
+
+/* Seviye değişimi: yeşil kutulu sağa ok */
+.lv-sub{display:flex;align-items:center;justify-content:center;gap:6px 10px;flex-wrap:wrap}
+.lvchg{display:inline-flex;align-items:center;gap:8px;white-space:nowrap}
+.uparrow.right svg{transform:rotate(90deg);animation:rightbob .7s steps(2) infinite}
+@keyframes rightbob{50%{transform:rotate(90deg) translateY(-3px)}}

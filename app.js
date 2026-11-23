@@ -563,7 +563,7 @@ function skillLevelUp(subjectId, from, to){
   const starsHtml=STARS.map(([l,t,z,c,d])=>`<i class="px-star ${c}" style="left:${l}%;top:${t}%;width:${z}px;height:${z}px;animation-delay:${.4+d}s,${.4+d}s">${PX_STAR}</i>`).join("");
   inner.innerHTML=`<div class="lv-top"><div class="lv-rays"></div>${starsHtml}<div class="lv-ring"></div><div class="lv-circle"><div class="lv-icon">${icon(s.el)}</div></div></div>
     <div class="lv-title"><span class="lv-name"></span><span class="lv-lv">LV.${to}</span></div>
-    <div class="lv-sub"><span class="lv-el"></span> yeteneğin güçlendi! Lv.${from} → Lv.${to}</div>
+    <div class="lv-sub"><span><span class="lv-el"></span> yeteneğin güçlendi!</span> <span class="lvchg">Lv.${from} <span class="uparrow right" aria-label="sonra"><svg viewBox="0 0 7 8" aria-hidden="true" shape-rendering="crispEdges"><path fill="currentColor" d="M3 0h1v1h1v1h1v1h1v1H5v4H2V4H0V3h1V2h1V1h1z"/></svg></span> Lv.${to}</span></div>
     <div class="hint">Devam etmek için dokun</div>`;
   inner.querySelector(".lv-name").textContent=s.name;
   inner.querySelector(".lv-el").textContent=s.eln;
