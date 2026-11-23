@@ -288,5 +288,3 @@ input,select,textarea{font-size:max(16px,1em)}
 .delconfirm .btn.ghost{color:var(--ink);border-color:var(--ink)}
 .btn.danger{background:#d9646f;color:#fff;box-shadow:0 3px 0 #8e3440}
 
-/* Abyss kurukafası pixel kalsın */
-.ico svg,.dot svg,.sc-icon svg,.sc-mark svg,.sc-opt svg{image-rendering:pixelated}
