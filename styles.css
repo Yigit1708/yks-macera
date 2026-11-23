@@ -347,8 +347,8 @@ input,select,textarea{font-size:max(16px,1em)}
 
 /* Seviye atlama v2: ışınlar en arkada, yan elmaslar yerine pixel yıldızlar, iki kutu aynı tarz */
 .lv-top{position:relative;width:min(88vw,360px);height:220px;display:grid;place-items:center;gap:0}
-.lv-top .lv-rays{position:absolute;left:50%;top:50%;width:330px;height:330px;margin:-165px 0 0 -165px;inset:auto;z-index:0;opacity:.45}
-.lv-top .lv-ring{position:absolute;left:50%;top:50%;width:178px;height:178px;margin:-89px 0 0 -89px;inset:auto;z-index:1}
+.lv-top .lv-rays{position:absolute;inset:auto;left:50%;top:50%;width:330px;height:330px;margin:-165px 0 0 -165px;z-index:0;opacity:.45}
+.lv-top .lv-ring{position:absolute;inset:auto;left:50%;top:50%;width:178px;height:178px;margin:-89px 0 0 -89px;z-index:1}
 .lv-top .lv-circle{position:relative;z-index:2}
 .lv-diamond{display:none}
 .px-star{position:absolute;z-index:3;display:block;transform:translate(-50%,-50%);image-rendering:pixelated;
