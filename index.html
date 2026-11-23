@@ -2,7 +2,7 @@
 <html lang="tr">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
 <title>YKS Macera Defteri</title>
 <meta name="description" content="Arkadaşların görev verir, sen tamamlarsın. YKS yolculuğun bir macera.">
 <meta name="theme-color" content="#121a33">
@@ -234,7 +234,12 @@
 
 <script>
   // Uygulama dosyası çalışmazsa "açılıyor"da sonsuza kadar bekletme
-  window.__yksV = "7";
+  window.__yksV = "8";
+  // iPhone Safari viewport ayarını yok sayabiliyor: iki parmakla yakınlaştırmayı da engelle
+  ["gesturestart", "gesturechange", "gestureend"].forEach(function (ev) {
+    document.addEventListener(ev, function (e) { e.preventDefault(); }, { passive: false });
+  });
+  document.addEventListener("touchmove", function (e) { if (e.touches && e.touches.length > 1) e.preventDefault(); }, { passive: false });
   window.__yksFail = function (msg) {
     var s = document.getElementById("gateStatus"); if (!s) return;
     s.hidden = false; s.textContent = msg;
