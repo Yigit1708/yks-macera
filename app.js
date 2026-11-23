@@ -182,12 +182,30 @@ $("claimBtn").onclick=async()=>{ $("claimBtn").disabled=true; $("codeErr").textC
 $("codeBannerClose").onclick=()=>{ $("codeBanner").hidden=true; };
 $("myCodeBtn").onclick=()=>{ if(!myLoginCode) return; $("myLoginCode").textContent=fmtCode(myLoginCode);
   $("codeBannerAsk").hidden=true; $("codeBannerShow").hidden=false; $("codeBanner").hidden=!$("codeBanner").hidden; };
+const withTimeout = (p, ms) => Promise.race([p, new Promise((r)=>setTimeout(()=>r(null), ms))]);
+let logoutTimer=null;
 $("logoutBtn").onclick=async()=>{
-  if($("logoutBtn").dataset.sure!=="1"){ $("logoutBtn").dataset.sure="1"; $("logoutBtn").textContent="Emin misin? Kodun: "+fmtCode(myLoginCode);
-    setTimeout(()=>{ $("logoutBtn").dataset.sure=""; $("logoutBtn").textContent="Çıkış"; },4000); return; }
-  try{ const reg=await navigator.serviceWorker?.ready; const sub=await reg?.pushManager?.getSubscription();
-    if(sub){ await sb.from("push_subs").delete().eq("endpoint", sub.endpoint); await sub.unsubscribe(); } }catch{}
-  await sb.auth.signOut(); store.set("yks-current",""); location.reload();
+  const btn=$("logoutBtn");
+  if(btn.dataset.sure!=="1"){
+    btn.dataset.sure="1"; btn.textContent="Çıkmak için tekrar bas";
+    if(myLoginCode) toast("Geri girmek için giriş kodun: "+fmtCode(myLoginCode));
+    else toast("⚠️ Henüz giriş kodun yok! Çıkarsan bu hesaba geri giremezsin. Önce üstteki 'Giriş kodumu al'a bas.");
+    clearTimeout(logoutTimer);
+    logoutTimer=setTimeout(()=>{ btn.dataset.sure=""; btn.textContent="Çıkış"; },5000); return;
+  }
+  clearTimeout(logoutTimer); btn.disabled=true; btn.textContent="Çıkılıyor…";
+  // Bu telefonun bildirim kaydını kaldır (en fazla 3 sn bekle; servis çalışanı yoksa takılma)
+  try{
+    const reg=await withTimeout(navigator.serviceWorker?.getRegistration?.() ?? Promise.resolve(null), 1500);
+    const sub=reg ? await withTimeout(reg.pushManager.getSubscription(), 1500) : null;
+    if(sub){ await withTimeout(sb.from("push_subs").delete().eq("endpoint", sub.endpoint), 2000); await withTimeout(sub.unsubscribe(), 1500); }
+  }catch{}
+  // Sunucuda çıkış yapılamasa bile (internet yok, oturum zaten kapalı) bu cihazdan çık
+  try{ const r=await withTimeout(sb.auth.signOut(), 3000); if(!r || r.error) await sb.auth.signOut({ scope:"local" }); }
+  catch{ try{ await sb.auth.signOut({ scope:"local" }); }catch{} }
+  try{ for(const k of Object.keys(localStorage)) if(k.startsWith("sb-")) localStorage.removeItem(k); }catch{}
+  store.set("yks-current","");
+  location.reload();
 };
 function showApp(){ $("gate").hidden=true; $("app").hidden=false; renderTop(); render(); setupInstall(); setupBell(); }
 
@@ -256,7 +274,7 @@ function renderTop(){
     o.textContent=(m.role==="hero"?"Kendi maceram":m.hero_name)+" · "+fmtCode(m.room_code); return o; }));
   sel.value=state.code||""; sel.hidden=memberships.length<2;
   $("ownStart").hidden=memberships.some((m)=>m.role==="hero");
-  $("myCodeBtn").hidden=!myLoginCode; $("logoutBtn").hidden=!myLoginCode;
+  $("myCodeBtn").hidden=!myLoginCode; $("logoutBtn").hidden=false;
   if(!myLoginCode && $("codeBannerShow").hidden) $("codeBanner").hidden=false;
 }
 function renderHero(){
