@@ -353,8 +353,17 @@ function renderQuests(){
     if(!q.done && !hero){ const bell=document.createElement("button"); bell.type="button"; bell.className="bellbtn";
       bell.title="Gezgine hatırlat"; bell.setAttribute("aria-label",`${state.room?.hero_name||"Gezgin"}'e bu görevi hatırlat`);
       bell.innerHTML=BELL_SVG; if(remindWait(q.id)>0) bell.classList.add("cool"); bell.onclick=()=>remindQuest(q,bell); act.append(bell); }
-    if(q.from_id===me){ const x=document.createElement("button"); x.className="x"; x.type="button"; x.title="Görevi sil"; x.setAttribute("aria-label","Görevi sil"); x.textContent="×"; x.onclick=()=>removeQuest(q,x); act.append(x); }
-    el.append(ico,mid,act); box.append(el);
+    if(q.from_id===me && confirmDel!==q.id){ const x=document.createElement("button"); x.className="delbtn"; x.type="button"; x.title="Görevi sil";
+      x.setAttribute("aria-label","Görevi sil"); x.innerHTML=X_SVG; x.onclick=()=>{ confirmDel=q.id; renderQuests(); }; act.append(x); }
+    el.append(ico,mid,act);
+    if(q.from_id===me && confirmDel===q.id){
+      const c=document.createElement("div"); c.className="delconfirm"; c.setAttribute("role","alertdialog");
+      const t=document.createElement("span"); t.textContent="Bu görev silinsin mi? Geri alınamaz.";
+      const no=document.createElement("button"); no.type="button"; no.className="btn ghost small"; no.textContent="Vazgeç"; no.onclick=()=>{ confirmDel=null; renderQuests(); };
+      const yes=document.createElement("button"); yes.type="button"; yes.className="btn small danger"; yes.textContent="Sil"; yes.onclick=()=>removeQuest(q,yes);
+      c.append(t,no,yes); el.append(c); setTimeout(()=>no.focus(),0);
+    }
+    box.append(el);
   });
 }
 function renderMembers(){
@@ -463,12 +472,13 @@ async function remindQuest(q,btn){
   else if(r?.status===401){ toast("Oturumun yenilenmeli. İsim soyisim ve giriş kodunla tekrar gir."); setTimeout(sessionExpired,1500); }
   else toast("Hatırlatma gönderilemedi"+(r?.data?.error?` (${r.data.error})`:"")+".");
 }
-const pendingDelete=new Set();
+let confirmDel=null;
+const X_SVG='<svg viewBox="0 0 7 7" aria-hidden="true" shape-rendering="crispEdges"><path fill="currentColor" d="M0 0h2v1h1v1h1V1h1V0h2v2H6v1H5v1h1v1h1v2H5V6H4V5H3v1H2v1H0V5h1V4h1V3H1V2H0z"/></svg>';
 async function removeQuest(q,btn){
-  if(!pendingDelete.has(q.id)){ pendingDelete.add(q.id); btn.textContent="Sil?"; btn.style.opacity=1; btn.style.fontSize="14px";
-    setTimeout(()=>{ pendingDelete.delete(q.id); if(btn.isConnected){ btn.textContent="×"; btn.style.opacity=""; btn.style.fontSize=""; } },3000); return; }
+  btn.disabled=true;
   const { error } = await sb.from("quests").delete().eq("id", q.id);
-  if(error) toast("Silinemedi."); else refreshQuests();
+  confirmDel=null;
+  if(error){ toast("Silinemedi."); renderQuests(); } else { toast("Görev silindi."); refreshQuests(); }
 }
 async function setElement(id, el){
   if(!isHero() || id==="deneme") return;

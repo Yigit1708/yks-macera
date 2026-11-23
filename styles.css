@@ -276,3 +276,15 @@ input,select,textarea{font-size:max(16px,1em)}
 .bellbtn.cool{opacity:.5;filter:grayscale(.6)}
 .bellbtn.ring svg{animation:ring .9s steps(6)}
 @keyframes ring{0%,100%{transform:rotate(0)}15%{transform:rotate(-22deg)}30%{transform:rotate(18deg)}45%{transform:rotate(-14deg)}60%{transform:rotate(10deg)}75%{transform:rotate(-5deg)}}
+
+/* Görev silme: kutulu pixel X ve onay */
+.delbtn{width:36px;height:36px;flex:none;display:grid;place-items:center;cursor:pointer;padding:0;color:#e58b8b;
+  background:#141b38;border:2px solid #9b4a5a;border-radius:4px;box-shadow:2px 2px 0 rgba(0,0,0,.35)}
+.delbtn svg{width:14px;height:14px}
+.delbtn:hover{background:#2a1830;color:#ff9f9f}
+.delbtn:active{transform:translate(1px,1px);box-shadow:1px 1px 0 rgba(0,0,0,.35)}
+.delbtn:focus-visible{outline:2px solid #fff;outline-offset:2px}
+.delconfirm{grid-column:1/-1;display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:4px;padding:8px 10px;border-radius:4px;background:rgba(155,74,90,.15);border:2px dashed #9b4a5a;font-weight:700;font-size:14px}
+.delconfirm span{flex:1;min-width:160px}
+.delconfirm .btn.ghost{color:var(--ink);border-color:var(--ink)}
+.btn.danger{background:#d9646f;color:#fff;box-shadow:0 3px 0 #8e3440}
