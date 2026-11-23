@@ -545,11 +545,25 @@ async function setupBell(){
   if(!SUPABASE_URL || SUPABASE_URL.includes("PROJE-KODUN") || SUPABASE_ANON_KEY.startsWith("BURAYA")){
     $("gate").hidden=true; $("setupMsg").hidden=false; return;
   }
-  sb = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, { auth:{ persistSession:true, autoRefreshToken:true } });
+  // lock: tarayıcı sekme kilidini kullanma — bazı tarayıcılarda kilit takılıp sayfa "açılıyor"da kalıyordu
+  sb = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, { auth:{ persistSession:true, autoRefreshToken:true, lock:async (_n,_t,fn)=>await fn() } });
   await startFromSession();
 })();
 
+// Açılış 12 saniyede bitmezse sonsuza kadar bekletme: nedenini ve "Tekrar dene"yi göster
 async function startFromSession(){
+  let done=false;
+  const watchdog=setTimeout(()=>{ if(done) return;
+    showGate("status","Bağlantı çok uzun sürdü. İnternetini kontrol edip tekrar dene.");
+    showRetry(); },12000);
+  try{ await startInner(); } finally { done=true; clearTimeout(watchdog); }
+}
+function showRetry(){
+  if($("retryBtn")) { $("retryBtn").hidden=false; return; }
+  const b=document.createElement("button"); b.id="retryBtn"; b.type="button"; b.className="btn"; b.textContent="↻ Tekrar dene";
+  b.onclick=()=>location.reload(); $("gateStatus").after(b);
+}
+async function startInner(){
   const gs=$("gateStatus");
   try{
     const { data:{ session } } = await sb.auth.getSession();
@@ -569,6 +583,6 @@ async function startFromSession(){
         }
       }
     }
-  }catch(err){ console.error(err); gs.textContent="Bağlanılamadı. İnternet bağlantını kontrol edip sayfayı yenile."; return; }
+  }catch(err){ console.error(err); showGate("status","Bağlanılamadı: "+(err?.message||"bilinmeyen hata")); showRetry(); return; }
   showGate("start");
 }
