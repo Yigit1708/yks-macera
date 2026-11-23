@@ -48,16 +48,36 @@
       </label>
       <div class="err" id="welcomeErr" role="alert"></div>
       <button class="btn" type="submit" id="welcomeBtn">Devam et</button>
+      <button class="linkbtn" type="button" id="toLogin">Zaten hesabım var → Giriş yap</button>
+    </form>
+
+    <form id="loginForm" hidden>
+      <p class="muted" style="text-align:center">Kaydolurken aldığın giriş koduyla gir.</p>
+      <label>İsim Soyisim
+        <input id="loginName" maxlength="40" autocomplete="name" placeholder="Örn. Ayşe Yılmaz">
+      </label>
+      <label>6 haneli giriş kodun
+        <input id="loginCode" class="codein" inputmode="numeric" maxlength="6" placeholder="000000" autocomplete="off">
+      </label>
+      <div class="err" id="loginErr" role="alert"></div>
+      <button class="btn" type="submit" id="loginBtn">Giriş yap</button>
+      <button class="linkbtn" type="button" id="toWelcome">Yeni hesap aç</button>
     </form>
 
     <div class="codescreen" id="codeScreen" hidden>
-      <p>Macera defterin hazır. Senin geçit kodun:</p>
-      <div class="bigcode" id="bigCode">000 000</div>
-      <p class="muted">Bu kodu yardım edecek arkadaşlarına ver. Onlar bu kodla girip sana görev verecek. Kod her zaman sayfanın üstünde de yazar.</p>
-      <div style="display:flex;gap:8px;justify-content:center;flex-wrap:wrap">
-        <button class="btn ghost" type="button" id="copyBig">Kodu kopyala</button>
-        <button class="btn" type="button" id="startBtn">Maceraya başla</button>
+      <div class="codecard login">
+        <p><b>🔑 Senin giriş kodun</b></p>
+        <div class="bigcode" id="bigLogin">000 000</div>
+        <p class="muted">Bu kod sadece sana ait. Başka bir telefondan ya da uygulamayı silip yeniden girerken <b>isim soyisim + bu kod</b> ile girersin. <b>Kimseyle paylaşma, bir yere not al.</b></p>
+        <button class="btn ghost small" type="button" id="copyLogin">Giriş kodunu kopyala</button>
       </div>
+      <div class="codecard" id="roomCodeCard" hidden>
+        <p><b>🌀 Maceranın geçit kodu</b></p>
+        <div class="bigcode" id="bigCode">000 000</div>
+        <p class="muted">Bunu yardım edecek arkadaşlarına ver. Onlar bu kodla katılıp sana görev verecek. Sayfanın üstünde de hep yazar.</p>
+        <button class="btn ghost small" type="button" id="copyBig">Geçit kodunu kopyala</button>
+      </div>
+      <button class="btn" type="button" id="startBtn">Kodumu not aldım, maceraya başla</button>
     </div>
   </section>
 
@@ -68,7 +88,22 @@
       <button class="btn ghost small bell" type="button" id="bellBtn" aria-pressed="false" hidden>🔔 Bildirimleri aç</button>
       <button class="btn ghost small" type="button" id="joinToggle">+ Arkadaşa katıl</button>
       <button class="btn ghost small" type="button" id="ownStart" hidden>Kendi maceramı başlat</button>
+      <button class="btn ghost small" type="button" id="myCodeBtn" hidden>🔑 Giriş kodum</button>
+      <button class="btn ghost small" type="button" id="logoutBtn" hidden>Çıkış</button>
     </div>
+
+    <section class="frame joinbox" id="codeBanner" hidden>
+      <div id="codeBannerAsk">
+        <p style="margin:0 0 10px"><b style="color:var(--gold)">🔒 Hesabını koru:</b> Sana özel bir giriş kodu al. Telefon değişirse ya da uygulama silinirse isim soyisim + bu kodla geri girersin.</p>
+        <button class="btn small" type="button" id="claimBtn">Giriş kodumu al</button>
+      </div>
+      <div id="codeBannerShow" hidden>
+        <p style="margin:0"><b style="color:var(--gold)">🔑 Giriş kodun:</b> <span class="val" id="myLoginCode" style="font-family:var(--f-pix);color:var(--gold);letter-spacing:.12em">------</span></p>
+        <p class="muted" style="margin:6px 0 0;font-size:14px">Kimseyle paylaşma, bir yere not al.</p>
+        <button class="btn ghost small" type="button" id="codeBannerClose" style="margin-top:8px">Not aldım</button>
+      </div>
+      <div class="err" id="codeErr" role="alert"></div>
+    </section>
 
     <section class="frame install" id="installCard" hidden>
       <h2>📱 Telefona kur <button class="x" type="button" id="installClose" aria-label="Kapat">×</button></h2>

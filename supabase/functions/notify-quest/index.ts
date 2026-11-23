@@ -1,11 +1,12 @@
-// YKS Macera Defteri — bildirim gönderen Supabase Edge Function
-// Uygulama bunu iki durumda çağırır:
-//   { type: "new",  quest_id }  → yoldaş görev astı  → gezginin telefonuna bildirim
-//   { type: "done", quest_id }  → gezgin bitirdi     → görevi verenin telefonuna bildirim
+// YKS Macera Defteri — Supabase Edge Function (Supabase'de adı: smooth-task)
+// Uygulama bu fonksiyonu şu işler için çağırır:
+//   { type: "ping" }                          → kurulum kontrolü
+//   { type: "claim_code" }                    → giriş yapmış kullanıcıya benzersiz 6 haneli giriş kodu ver
+//   { type: "login", name, code }             → isim soyisim + giriş kodu ile giriş
+//   { type: "new",  quest_id }                → yoldaş görev astı → gezgine bildirim
+//   { type: "done", quest_id }                → gezgin bitirdi    → görevi verene bildirim
 // Gerekli gizli değişkenler (Edge Functions → Secrets):
 //   VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY, VAPID_SUBJECT (ör. mailto:sen@ornek.com)
-// deno-lint-ignore no-explicit-any
-let webpush: any = null;
 import { createClient } from "npm:@supabase/supabase-js@2.50.0";
 
 const cors = {
@@ -17,10 +18,13 @@ const json = (body: unknown, status = 200) =>
   new Response(JSON.stringify(body), { status, headers: { ...cors, "Content-Type": "application/json" } });
 
 const URL_ = Deno.env.get("SUPABASE_URL")!;
-const ANON = Deno.env.get("SUPABASE_ANON_KEY")!;
 const SERVICE = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+const admin = () => createClient(URL_, SERVICE, { auth: { persistSession: false, autoRefreshToken: false } });
+const anonKey = (req: Request) => Deno.env.get("SUPABASE_ANON_KEY") || req.headers.get("apikey") || "";
 
-// Anahtarları ilk istekte kur; hata olursa fonksiyon çökmesin, nedenini söylesin.
+// ---------- web push (ilk istekte kurulur; hata olursa çökmez, nedenini söyler) ----------
+// deno-lint-ignore no-explicit-any
+let webpush: any = null;
 let vapidError: string | null = null, vapidReady = false;
 async function setupVapid() {
   if (vapidReady) return;
@@ -39,62 +43,134 @@ async function setupVapid() {
   catch (e) { vapidError = "VAPID anahtarları geçersiz: " + (e as Error).message; }
 }
 
-const FRESH_MS = 10 * 60 * 1000; // sadece son 10 dakikadaki olaylar için bildirim
+// ---------- giriş kodu → hesap şifresi ----------
+// Şifre giriş kodundan sunucuda türetilir; kod tek başına Supabase'e doğrudan giriş için yetmez.
+const CODE_RE = /^[0-9]{6}$/;
+const emailFor = (id: string) => `yks-${id}@example.com`;
+async function passwordFor(userId: string, code: string) {
+  const pepper = (Deno.env.get("VAPID_PRIVATE_KEY") ?? "") + "|yks-login";
+  const key = await crypto.subtle.importKey("raw", new TextEncoder().encode(pepper), { name: "HMAC", hash: "SHA-256" }, false, ["sign"]);
+  const sig = new Uint8Array(await crypto.subtle.sign("HMAC", key, new TextEncoder().encode(userId + ":" + code)));
+  return "Yk!" + btoa(String.fromCharCode(...sig)).replace(/[+/=]/g, "");
+}
+const ipOf = (req: Request) => (req.headers.get("x-forwarded-for") ?? "").split(",")[0].trim() || "bilinmiyor";
 
+async function callerOf(req: Request) {
+  const c = createClient(URL_, anonKey(req), { global: { headers: { Authorization: req.headers.get("Authorization") ?? "" } }, auth: { persistSession: false } });
+  const { data: { user } } = await c.auth.getUser();
+  return user;
+}
+
+// Giriş yapmış kullanıcıya benzersiz giriş kodu ver ve hesabını bu koda bağla
+async function claimCode(req: Request) {
+  const user = await callerOf(req);
+  if (!user) return json({ error: "not_authenticated" }, 401);
+  const db = admin();
+  const { data: code, error: ce } = await db.rpc("assign_login_code", { p_user: user.id });
+  if (ce || !code) { console.error("assign_login_code", ce); return json({ error: "claim_failed", detail: ce?.message }, 500); }
+  const { error } = await db.auth.admin.updateUserById(user.id, {
+    email: emailFor(user.id), password: await passwordFor(user.id, code), email_confirm: true,
+  });
+  if (error) { console.error("claim_code", error); return json({ error: "claim_failed", detail: error.message }, 500); }
+  return json({ code });
+}
+
+const MAX_FAILS = 10, LOCK_MS = 15 * 60 * 1000;
+async function login(req: Request, name: string, code: string) {
+  if (!CODE_RE.test(String(code ?? "")) || !String(name ?? "").trim()) return json({ error: "bad_request" }, 400);
+  const db = admin();
+  const ip = ipOf(req);
+  const { data: guard } = await db.from("login_guard").select("*").eq("ip", ip).maybeSingle();
+  if (guard?.locked_until && Date.parse(guard.locked_until) > Date.now())
+    return json({ error: "locked", until: guard.locked_until }, 429);
+
+  const fail = async () => {
+    const fails = (guard?.fails ?? 0) + 1;
+    const locked = fails >= MAX_FAILS;
+    await db.from("login_guard").upsert({ ip, fails: locked ? 0 : fails, locked_until: locked ? new Date(Date.now() + LOCK_MS).toISOString() : null });
+    return json({ error: locked ? "locked" : "no_match" }, locked ? 429 : 401);
+  };
+
+  const { data: uid, error: fe } = await db.rpc("find_by_login", { p_code: code, p_name: name });
+  if (fe) { console.error("find_by_login", fe); return json({ error: "server_error" }, 500); }
+  if (!uid) return await fail();
+
+  const anon = createClient(URL_, anonKey(req), { auth: { persistSession: false, autoRefreshToken: false } });
+  const { data, error } = await anon.auth.signInWithPassword({ email: emailFor(uid), password: await passwordFor(uid, code) });
+  if (error || !data.session) { console.error("login", error?.message); return await fail(); }
+  await db.from("login_guard").delete().eq("ip", ip);
+  return json({ access_token: data.session.access_token, refresh_token: data.session.refresh_token });
+}
+
+// ---------- bildirimler ----------
+const FRESH_MS = 10 * 60 * 1000; // sadece son 10 dakikadaki olaylar için bildirim
+async function notify(req: Request, type: string, quest_id: string) {
+  await setupVapid();
+  if (vapidError) return json({ error: vapidError }, 500);
+  const user = await callerOf(req);
+  if (!user) return json({ error: "not_authenticated" }, 401);
+  if (typeof quest_id !== "string") return json({ error: "bad_request" }, 400);
+
+  const db = admin();
+  const { data: q } = await db.from("quests").select("*").eq("id", quest_id).maybeSingle();
+  if (!q) return json({ error: "not_found" }, 404);
+  const { data: room } = await db.from("rooms").select("hero_id, hero_name").eq("code", q.room_code).single();
+
+  let recipient: string, title: string, body: string, flag: "notified_new" | "notified_done";
+  if (type === "new") {
+    if (q.from_id !== user.id || Date.now() - Date.parse(q.created_at) > FRESH_MS) return json({ skipped: true });
+    const { data: giver } = await db.from("profiles").select("name").eq("id", q.from_id).single();
+    recipient = room!.hero_id;
+    title = "⚔️ Yeni görev!";
+    body = `${giver?.name ?? "Bir yoldaş"} sana görev verdi: ${q.title} (+${q.xp} XP)`;
+    flag = "notified_new";
+  } else {
+    if (room!.hero_id !== user.id || !q.done || Date.now() - Date.parse(q.done_at) > FRESH_MS) return json({ skipped: true });
+    recipient = q.from_id;
+    title = "✦ Görev tamamlandı!";
+    body = `${room!.hero_name} verdiğin görevi bitirdi: ${q.title} (+${q.xp} XP)`;
+    flag = "notified_done";
+  }
+
+  // Aynı olay için tek bildirim: bayrağı ilk çeviren gönderir
+  const { data: claimed } = await db.from("quests").update({ [flag]: true }).eq("id", q.id).eq(flag, false).select("id");
+  if (!claimed?.length) return json({ skipped: true, reason: "already_sent" });
+
+  const { data: subs } = await db.from("push_subs").select("*").eq("user_id", recipient);
+  const payload = JSON.stringify({ title, body, url: "./", tag: `quest-${q.id}-${type}` });
+  let sent = 0;
+  await Promise.all((subs ?? []).map(async (s) => {
+    try {
+      await webpush.sendNotification({ endpoint: s.endpoint, keys: { p256dh: s.p256dh, auth: s.auth } }, payload, { TTL: 60 * 60 * 24 });
+      sent++;
+    } catch (e) {
+      const code = (e as { statusCode?: number }).statusCode;
+      if (code === 404 || code === 410) await db.from("push_subs").delete().eq("endpoint", s.endpoint); // süresi geçmiş abonelik
+      else console.error("push hata", code, (e as Error).message);
+    }
+  }));
+  return json({ sent });
+}
+
+// ---------- giriş noktası ----------
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: cors });
-  await setupVapid();
   try {
-    const peek = await req.clone().json().catch(() => ({}));
-    if (peek?.type === "ping") return json({ ok: !vapidError, vapid: vapidError ?? "hazır" });
-    if (vapidError) return json({ error: vapidError }, 500);
-    // Çağıranı doğrula
-    const userClient = createClient(URL_, ANON, { global: { headers: { Authorization: req.headers.get("Authorization") ?? "" } } });
-    const { data: { user } } = await userClient.auth.getUser();
-    if (!user) return json({ error: "not_authenticated" }, 401);
-
-    const { type, quest_id } = await req.json();
-    if (!["new", "done"].includes(type) || typeof quest_id !== "string") return json({ error: "bad_request" }, 400);
-
-    const admin = createClient(URL_, SERVICE);
-    const { data: q } = await admin.from("quests").select("*").eq("id", quest_id).maybeSingle();
-    if (!q) return json({ error: "not_found" }, 404);
-    const { data: room } = await admin.from("rooms").select("hero_id, hero_name").eq("code", q.room_code).single();
-
-    let recipient: string, title: string, body: string, flag: "notified_new" | "notified_done";
-    if (type === "new") {
-      if (q.from_id !== user.id || Date.now() - Date.parse(q.created_at) > FRESH_MS) return json({ skipped: true });
-      const { data: giver } = await admin.from("profiles").select("name").eq("id", q.from_id).single();
-      recipient = room!.hero_id;
-      title = "⚔️ Yeni görev!";
-      body = `${giver?.name ?? "Bir yoldaş"} sana görev verdi: ${q.title} (+${q.xp} XP)`;
-      flag = "notified_new";
-    } else {
-      if (room!.hero_id !== user.id || !q.done || Date.now() - Date.parse(q.done_at) > FRESH_MS) return json({ skipped: true });
-      recipient = q.from_id;
-      title = "✦ Görev tamamlandı!";
-      body = `${room!.hero_name} verdiğin görevi bitirdi: ${q.title} (+${q.xp} XP)`;
-      flag = "notified_done";
-    }
-
-    // Aynı olay için tek bildirim: bayrağı ilk çeviren gönderir
-    const { data: claimed } = await admin.from("quests").update({ [flag]: true }).eq("id", q.id).eq(flag, false).select("id");
-    if (!claimed?.length) return json({ skipped: true, reason: "already_sent" });
-
-    const { data: subs } = await admin.from("push_subs").select("*").eq("user_id", recipient);
-    const payload = JSON.stringify({ title, body, url: "./", tag: `quest-${q.id}-${type}` });
-    let sent = 0;
-    await Promise.all((subs ?? []).map(async (s) => {
-      try {
-        await webpush.sendNotification({ endpoint: s.endpoint, keys: { p256dh: s.p256dh, auth: s.auth } }, payload, { TTL: 60 * 60 * 24 });
-        sent++;
-      } catch (e) {
-        const code = (e as { statusCode?: number }).statusCode;
-        if (code === 404 || code === 410) await admin.from("push_subs").delete().eq("endpoint", s.endpoint); // süresi geçmiş abonelik
-        else console.error("push hata", code, (e as Error).message);
+    const b = await req.json().catch(() => ({}));
+    switch (b?.type) {
+      case "ping": {
+        await setupVapid();
+        let dbs = "hazır";
+        try { const { error } = await admin().from("login_guard").select("ip", { count: "exact", head: true }); if (error) dbs = error.message; }
+        catch (e) { dbs = (e as Error).message; }
+        return json({ ok: !vapidError && dbs === "hazır", vapid: vapidError ?? "hazır", db: dbs });
       }
-    }));
-    return json({ sent });
+      case "claim_code": return await claimCode(req);
+      case "login":      return await login(req, b.name, b.code);
+      case "new":
+      case "done":    return await notify(req, b.type, b.quest_id);
+      default:        return json({ error: "bad_request" }, 400);
+    }
   } catch (e) {
     console.error(e);
     return json({ error: "server_error" }, 500);

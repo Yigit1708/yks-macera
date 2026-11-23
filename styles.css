@@ -228,3 +228,18 @@ form{display:grid;gap:10px}
 .bell[aria-pressed="true"]{background:var(--ok);color:var(--ink);border-color:var(--ok)}
 .setup{max-width:640px;margin:6vh auto 0;padding:24px;display:grid;gap:12px}
 .setup code{background:#0b1026;padding:2px 6px;border-radius:3px;color:var(--gold)}
+.linkbtn{font:inherit;font-size:14px;background:none;border:0;color:var(--gold);cursor:pointer;text-decoration:underline;text-underline-offset:3px;justify-self:center;padding:4px}
+.linkbtn:focus-visible{outline:2px solid #fff;outline-offset:2px}
+.codecard{border:2px solid var(--line);border-radius:6px;padding:14px;display:grid;gap:4px;justify-items:center;background:#141b38}
+.codecard.login{border-color:var(--gold2);box-shadow:0 0 0 3px rgba(232,198,117,.1)}
+.codecard .bigcode{padding:6px 0;font-size:clamp(24px,8vw,38px)}
+.codecard p{margin:0}
+
+/* Zikzak yolculuk patikası */
+.trail{height:210px;margin:0 4px}
+.trail .milestone{bottom:auto;width:0;height:0;transform:none;line-height:1.15}
+.trail .milestone b{position:absolute;left:0;top:0;margin:0;transform:translate(-50%,-50%) rotate(45deg);width:16px;height:16px}
+.trail .ms-label{position:absolute;top:16px;left:0;transform:translateX(-50%);width:96px;text-align:center;font-size:13px;color:inherit;text-wrap:balance}
+.trail .walker{bottom:auto;transform:translate(-50%,-100%);transition:left 1.2s cubic-bezier(.3,.7,.2,1),top 1.2s cubic-bezier(.3,.7,.2,1);z-index:2}
+.trail .walker::after{bottom:-3px}
+@media (max-width:480px){.trail .ms-label{width:80px;font-size:12px}}

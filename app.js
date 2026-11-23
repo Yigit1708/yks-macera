@@ -56,7 +56,24 @@ async function copyText(txt){ try{ await navigator.clipboard.writeText(txt); toa
 function fmtDate(t){ try{ return new Date(t).toLocaleDateString("tr-TR",{day:"numeric",month:"short"}); }catch{ return ""; } }
 const initials = (n) => (n||"?").trim().split(/\s+/).map((w)=>w[0]).slice(0,2).join("").toLocaleUpperCase("tr-TR");
 const nameOf = (id) => state.members[id]?.name || "Bir yoldaş";
-const notify = (type, quest_id) => sb.functions.invoke(NOTIFY_FUNCTION, { body:{ type, quest_id } }).catch(()=>{});
+// Sunucu fonksiyonunu çağır: { status, data }
+async function callFn(body){
+  const { data:{ session } } = await sb.auth.getSession();
+  const res = await fetch(`${SUPABASE_URL}/functions/v1/${NOTIFY_FUNCTION}`, {
+    method:"POST",
+    headers:{ "Content-Type":"application/json", apikey:SUPABASE_ANON_KEY, Authorization:"Bearer "+(session?.access_token||SUPABASE_ANON_KEY) },
+    body:JSON.stringify(body),
+  });
+  let data=null; try{ data=await res.json(); }catch{}
+  return { status:res.status, data };
+}
+const notify = (type, quest_id) => callFn({ type, quest_id }).catch(()=>{});
+let myLoginCode = null;
+async function claimCode(){
+  const { status, data } = await callFn({ type:"claim_code" });
+  if(status!==200 || !data?.code) throw new Error("claim_failed: "+(data?.detail||data?.error||status));
+  myLoginCode=data.code; return data.code;
+}
 
 /* ---------- giriş kapısı ---------- */
 let role = null;
@@ -87,14 +104,19 @@ $("welcomeForm").addEventListener("submit", async (e)=>{
     await ensureAccount(name);
     if(role==="hero"){
       const { data:code, error } = await sb.rpc("create_room"); if(error) throw error;
-      await loadMemberships(); showCode(code);
+      const login = myLoginCode || await claimCode();
+      await loadMemberships(); showCodes(login, code);
     } else {
       const err = await joinRoom($("codeIn").value);
-      if(err) $("welcomeErr").textContent=err; else showApp();
+      if(err){ $("welcomeErr").textContent=err; }
+      else { const login = myLoginCode || await claimCode(); showCodes(login, null); }
     }
   }catch(err){
     console.error(err);
-    $("welcomeErr").textContent = /anonymous/i.test(err?.message||"") ? "Supabase'de anonim girişler kapalı. KURULUM.md'deki 2. adıma bak." : "Kaydedilemedi. İnternet bağlantını kontrol edip tekrar dene.";
+    const m=err?.message||"";
+    $("welcomeErr").textContent = /anonymous/i.test(m) ? "Supabase'de anonim girişler kapalı. KURULUM.md'deki 2. adıma bak."
+      : /claim_failed/.test(m) ? "Giriş kodu alınamadı. Biraz sonra tekrar dene."
+      : "Kaydedilemedi. İnternet bağlantını kontrol edip tekrar dene.";
   }
   $("welcomeBtn").disabled=false;
 });
@@ -109,12 +131,54 @@ async function joinRoom(raw){
   await enterRoom(code);
   return null;
 }
-function showCode(code){
-  $("welcomeForm").hidden=true; $("gateStatus").hidden=true;
-  $("bigCode").textContent=fmtCode(code); $("codeScreen").hidden=false;
-  $("copyBig").onclick=()=>copyText(code);
-  $("startBtn").onclick=async()=>{ await enterRoom(code); showApp(); };
+function showCodes(login, room){
+  $("welcomeForm").hidden=true; $("loginForm").hidden=true; $("gateStatus").hidden=true;
+  $("bigLogin").textContent=fmtCode(login); $("copyLogin").onclick=()=>copyText(login);
+  $("roomCodeCard").hidden=!room;
+  if(room){ $("bigCode").textContent=fmtCode(room); $("copyBig").onclick=()=>copyText(room); }
+  $("codeScreen").hidden=false;
+  $("startBtn").onclick=async()=>{ if(room) await enterRoom(room); showApp(); };
 }
+
+/* ---------- giriş (isim soyisim + giriş kodu) ---------- */
+$("toLogin").onclick=()=>{ $("welcomeForm").hidden=true; $("loginForm").hidden=false; $("loginErr").textContent=""; $("loginName").focus(); };
+$("toWelcome").onclick=()=>{ $("loginForm").hidden=true; $("welcomeForm").hidden=false; };
+$("loginForm").addEventListener("submit", async (e)=>{
+  e.preventDefault();
+  const name=$("loginName").value.trim().replace(/\s+/g," "), code=$("loginCode").value;
+  if(name.split(" ").length<2){ $("loginErr").textContent="İsmini ve soyismini birlikte yaz."; return; }
+  if(!/^\d{6}$/.test(code)){ $("loginErr").textContent="Giriş kodu 6 haneli bir sayı olmalı."; return; }
+  $("loginBtn").disabled=true; $("loginErr").textContent="";
+  try{
+    const { status, data } = await callFn({ type:"login", name, code });
+    if(status===200 && data?.access_token){
+      await sb.auth.setSession({ access_token:data.access_token, refresh_token:data.refresh_token });
+      $("loginForm").hidden=true; $("gateStatus").hidden=false; $("gateStatus").textContent="Defter açılıyor…";
+      await startFromSession();
+    } else if(data?.error==="locked"){
+      $("loginErr").textContent="Çok fazla yanlış deneme oldu. 15 dakika sonra tekrar dene.";
+    } else {
+      $("loginErr").textContent="İsim soyisim ya da giriş kodu yanlış. Kaydolurken yazdığın ismi aynen yaz.";
+    }
+  }catch(err){ console.error(err); $("loginErr").textContent="Bağlanılamadı. İnternet bağlantını kontrol et."; }
+  $("loginBtn").disabled=false;
+});
+
+/* ---------- giriş kodu hatırlatma, çıkış ---------- */
+$("claimBtn").onclick=async()=>{ $("claimBtn").disabled=true; $("codeErr").textContent="";
+  try{ const c=await claimCode(); $("myLoginCode").textContent=fmtCode(c); $("codeBannerAsk").hidden=true; $("codeBannerShow").hidden=false; renderTop(); }
+  catch{ $("codeErr").textContent="Giriş kodu alınamadı. Biraz sonra tekrar dene."; }
+  $("claimBtn").disabled=false; };
+$("codeBannerClose").onclick=()=>{ $("codeBanner").hidden=true; };
+$("myCodeBtn").onclick=()=>{ if(!myLoginCode) return; $("myLoginCode").textContent=fmtCode(myLoginCode);
+  $("codeBannerAsk").hidden=true; $("codeBannerShow").hidden=false; $("codeBanner").hidden=!$("codeBanner").hidden; };
+$("logoutBtn").onclick=async()=>{
+  if($("logoutBtn").dataset.sure!=="1"){ $("logoutBtn").dataset.sure="1"; $("logoutBtn").textContent="Emin misin? Kodun: "+fmtCode(myLoginCode);
+    setTimeout(()=>{ $("logoutBtn").dataset.sure=""; $("logoutBtn").textContent="Çıkış"; },4000); return; }
+  try{ const reg=await navigator.serviceWorker?.ready; const sub=await reg?.pushManager?.getSubscription();
+    if(sub){ await sb.from("push_subs").delete().eq("endpoint", sub.endpoint); await sub.unsubscribe(); } }catch{}
+  await sb.auth.signOut(); store.set("yks-current",""); location.reload();
+};
 function showApp(){ $("gate").hidden=true; $("app").hidden=false; renderTop(); render(); setupInstall(); setupBell(); }
 
 /* ---------- maceralar ---------- */
@@ -182,6 +246,8 @@ function renderTop(){
     o.textContent=(m.role==="hero"?"Kendi maceram":m.hero_name)+" · "+fmtCode(m.room_code); return o; }));
   sel.value=state.code||""; sel.hidden=memberships.length<2;
   $("ownStart").hidden=memberships.some((m)=>m.role==="hero");
+  $("myCodeBtn").hidden=!myLoginCode; $("logoutBtn").hidden=!myLoginCode;
+  if(!myLoginCode && $("codeBannerShow").hidden) $("codeBanner").hidden=false;
 }
 function renderHero(){
   const s=stats(); const r=state.room||{};
@@ -191,13 +257,22 @@ function renderHero(){
   $("xptext").textContent=`${s.xp%100} / 100 XP · toplam ${s.xp}`;
   $("roomCode").textContent=fmtCode(state.code); $("noteCode").textContent=fmtCode(state.code);
   $("portrait").replaceChildren(avatarEl(0));
+  // Zikzak patika: duraklar eşit aralıkla, sırayla yukarı/aşağı; yazılar hep durağın altında
   const t=$("trail"); t.replaceChildren();
-  const pct=(x)=>4+92*Math.min(x/GOAL,1);
-  t.insertAdjacentHTML("beforeend",`<svg viewBox="0 0 100 120" preserveAspectRatio="none" aria-hidden="true">
-    <line x1="4" y1="98" x2="96" y2="98" stroke="#3a4777" stroke-width="4" stroke-dasharray="3 3" vector-effect="non-scaling-stroke"/>
-    <line x1="4" y1="98" x2="${pct(s.xp)}" y2="98" stroke="#e8c675" stroke-width="4" vector-effect="non-scaling-stroke"/></svg>`);
-  MILESTONES.forEach((m)=>{ const d=document.createElement("div"); d.className="milestone"+(s.xp>=m.xp?" reached":""); d.style.left=pct(m.xp)+"%"; d.innerHTML="<b></b>"; d.append(m.n); t.append(d); });
-  const w=document.createElement("div"); w.className="walker"; w.style.left=pct(s.xp)+"%"; w.title=`${s.xp} / ${GOAL} XP`;
+  const n=MILESTONES.length;
+  const pts=MILESTONES.map((m,i)=>({ x:8+i*(84/(n-1)), y:i%2===0?40:72 }));
+  let k=0; while(k<n-2 && s.xp>=MILESTONES[k+1].xp) k++;
+  const span=MILESTONES[k+1].xp-MILESTONES[k].xp;
+  const f=Math.max(0,Math.min(1,(s.xp-MILESTONES[k].xp)/span));
+  const me_={ x:pts[k].x+(pts[k+1].x-pts[k].x)*f, y:pts[k].y+(pts[k+1].y-pts[k].y)*f };
+  const walked=[...pts.slice(0,k+1), me_].map((p)=>`${p.x},${p.y}`).join(" ");
+  t.insertAdjacentHTML("beforeend",`<svg viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
+    <polyline points="${pts.map((p)=>`${p.x},${p.y}`).join(" ")}" fill="none" stroke="#3a4777" stroke-width="4" stroke-dasharray="3 4" stroke-linejoin="round" vector-effect="non-scaling-stroke"/>
+    <polyline points="${walked}" fill="none" stroke="#e8c675" stroke-width="4" stroke-linejoin="round" vector-effect="non-scaling-stroke"/></svg>`);
+  MILESTONES.forEach((m,i)=>{ const d=document.createElement("div"); d.className="milestone"+(s.xp>=m.xp?" reached":"");
+    d.style.left=pts[i].x+"%"; d.style.top=pts[i].y+"%"; d.innerHTML="<b></b>";
+    const l=document.createElement("span"); l.className="ms-label"; l.textContent=m.n; d.append(l); t.append(d); });
+  const w=document.createElement("div"); w.className="walker"; w.style.left=me_.x+"%"; w.style.top=me_.y+"%"; w.title=`${s.xp} / ${GOAL} XP`;
   const inner=document.createElement("div"); inner.append(avatarEl(0)); w.append(inner); t.append(w);
 }
 function renderQuests(){
@@ -427,6 +502,10 @@ async function setupBell(){
     $("gate").hidden=true; $("setupMsg").hidden=false; return;
   }
   sb = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, { auth:{ persistSession:true, autoRefreshToken:true } });
+  await startFromSession();
+})();
+
+async function startFromSession(){
   const gs=$("gateStatus");
   try{
     const { data:{ session } } = await sb.auth.getSession();
@@ -435,6 +514,7 @@ async function setupBell(){
       const { data:prof } = await sb.from("profiles").select("name").eq("id", me).maybeSingle();
       if(prof){
         myName=prof.name; $("nameIn").value=prof.name;
+        const { data:lc } = await sb.rpc("my_login_code"); myLoginCode=lc||null;
         await loadMemberships();
         if(memberships.length){
           const saved=store.get("yks-current");
@@ -445,4 +525,4 @@ async function setupBell(){
     }
   }catch(err){ console.error(err); gs.textContent="Bağlanılamadı. İnternet bağlantını kontrol edip sayfayı yenile."; return; }
   gs.hidden=true; $("welcomeForm").hidden=false;
-})();
+}
