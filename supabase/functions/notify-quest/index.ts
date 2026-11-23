@@ -5,7 +5,7 @@
 // Gerekli gizli değişkenler (Edge Functions → Secrets):
 //   VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY, VAPID_SUBJECT (ör. mailto:sen@ornek.com)
 import webpush from "npm:web-push@3.6.7";
-import { createClient } from "npm:@supabase/supabase-js@2.45.4";
+import { createClient } from "npm:@supabase/supabase-js@2.50.0";
 
 const cors = {
   "Access-Control-Allow-Origin": "*",
