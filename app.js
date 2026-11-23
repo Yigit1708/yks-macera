@@ -29,7 +29,7 @@ const SUBJECTS = [
 const CHOOSABLE = ["pyro","hydro","anemo","electro","dendro","cryo","geo","abyss"];
 const MASKED = ["pyro","hydro","anemo","electro","dendro","cryo","geo"];
 const TIERS = {gunluk:{n:"Günlük",xp:20}, hikaye:{n:"Hikâye",xp:50}, efsane:{n:"Efsanevi",xp:120}};
-const MILESTONES = [{xp:0,n:"Başlangıç Köyü"},{xp:600,n:"TYT Ormanı"},{xp:1600,n:"AYT Dağları"},{xp:3200,n:"Deneme Kalesi"},{xp:5500,n:"Üniversite Kapısı"}];
+const MILESTONES = [{xp:0,n:"Başlangıç Köyü"},{xp:600,n:"TYT Ormanı"},{xp:1800,n:"AYT Dağları"},{xp:4200,n:"Deneme Kalesi"},{xp:9000,n:"Üniversite Kapısı"}];
 const GOAL = MILESTONES[MILESTONES.length-1].xp;
 // Yetenek seviyesi: Lv.1→2 için 150 XP, sonra her seviye 50 XP daha fazla ister (150, 200, 250…)
 function skillLv(xp){ let lv=1, need=150; while(xp>=need){ xp-=need; lv++; need+=50; } return { lv, cur:xp, need }; }
