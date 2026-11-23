@@ -76,7 +76,10 @@ async function claimCode(req: Request) {
     email: emailFor(user.id), password: await passwordFor(user.id, code), email_confirm: true,
   });
   if (error) { console.error("claim_code", error); return json({ error: "claim_failed", detail: error.message }, 500); }
-  return json({ code });
+  // Şifre değişince Supabase eski oturumları kapatıyor; uygulamaya hemen yeni oturum ver.
+  const anon = createClient(URL_, anonKey(req), { auth: { persistSession: false, autoRefreshToken: false } });
+  const { data: s } = await anon.auth.signInWithPassword({ email: emailFor(user.id), password: await passwordFor(user.id, code) });
+  return json({ code, access_token: s?.session?.access_token, refresh_token: s?.session?.refresh_token });
 }
 
 const MAX_FAILS = 10, LOCK_MS = 15 * 60 * 1000;

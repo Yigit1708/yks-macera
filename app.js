@@ -72,7 +72,17 @@ let myLoginCode = null;
 async function claimCode(){
   const { status, data } = await callFn({ type:"claim_code" });
   if(status!==200 || !data?.code) throw new Error("claim_failed: "+(data?.detail||data?.error||status));
+  if(data.access_token) await sb.auth.setSession({ access_token:data.access_token, refresh_token:data.refresh_token });
   myLoginCode=data.code; return data.code;
+}
+// Oturum sunucuda kapanmışsa (ör. eski sürümde kod alınırken) yerelde temizle ve girişe yönlendir
+async function sessionExpired(){
+  try{ await sb.auth.signOut({ scope:"local" }); }catch{}
+  me=null; myName=null; myLoginCode=null;
+  if(channel){ sb.removeChannel(channel); channel=null; }
+  $("app").hidden=true; $("gate").hidden=false; $("codeScreen").hidden=true; $("welcomeForm").hidden=true;
+  $("gateStatus").hidden=false; $("gateStatus").textContent="Oturumunun yenilenmesi gerekiyor. İsim soyisim ve giriş kodunla tekrar gir.";
+  $("loginForm").hidden=false; $("loginErr").textContent="";
 }
 
 /* ---------- giriş kapısı ---------- */
@@ -377,6 +387,7 @@ $("addForm").addEventListener("submit", async (e)=>{
       if(r?.data?.sent>0) toast(`🔔 ${state.room?.hero_name||"Arkadaşına"} bildirim gitti`);
       else if(r?.data?.failed?.length){ const f=r.data.failed[0]; toast(`⚠️ Bildirim ${f.service==="apple"?"Apple (iPhone)":f.service} tarafından reddedildi: ${f.status||""} ${f.reason||""}`); }
       else if(r?.data?.sent===0) toast(`🔕 ${state.room?.hero_name||"Arkadaşın"} bildirimleri açmamış. Uygulamada 🔔 Bildirimleri aç'a dokunmasını söyle.`);
+      else if(r?.status===401){ toast("Oturumun yenilenmeli. İsim soyisim ve giriş kodunla tekrar gir."); setTimeout(sessionExpired,1500); }
       else if(r && r.status!==200) toast("Bildirim gönderilemedi ("+(r.data?.error||r.status)+").");
     }); }
   $("addBtn").disabled=false;
@@ -516,6 +527,8 @@ async function startFromSession(){
   try{
     const { data:{ session } } = await sb.auth.getSession();
     if(session){
+      const { error:ue } = await sb.auth.getUser();
+      if(ue && (ue.status===401 || ue.status===403 || /session/i.test(ue.message||""))){ await sessionExpired(); return; }
       me=session.user.id;
       const { data:prof } = await sb.from("profiles").select("name").eq("id", me).maybeSingle();
       if(prof){
