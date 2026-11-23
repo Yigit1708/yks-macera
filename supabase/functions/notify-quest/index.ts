@@ -37,8 +37,12 @@ async function setupVapid() {
   let subj = (Deno.env.get("VAPID_SUBJECT") ?? "").trim();
   if (!pub) { vapidError = "VAPID_PUBLIC_KEY secret eksik"; return; }
   if (!priv) { vapidError = "VAPID_PRIVATE_KEY secret eksik"; return; }
-  if (!subj || subj.includes("KENDI-EPOSTAN")) subj = "mailto:yks-macera@example.com";
-  if (!/^(mailto:|https:)/.test(subj)) subj = "mailto:" + subj;
+  // Apple (iPhone) geçersiz/örnek adresli "subject"i reddediyor (403 BadJwtToken).
+  // Boşluksuz, gerçek görünen bir mailto ya da sitenin https adresi kullan.
+  subj = subj.replace(/\s+/g, "");
+  if (subj && !/^(mailto:|https:)/.test(subj)) subj = "mailto:" + subj;
+  if (!/^mailto:[^@]+@[^@]+\.[a-z]{2,}$/i.test(subj) && !/^https:\/\/\S+$/.test(subj)) subj = "";
+  if (!subj || /KENDI-EPOSTAN|ornek\.com|example\.(com|org)|localhost/i.test(subj)) subj = "https://yigit1708.github.io/yks-macera/";
   try { webpush.setVapidDetails(subj, pub, priv); vapidReady = true; vapidError = null; }
   catch (e) { vapidError = "VAPID anahtarları geçersiz: " + (e as Error).message; }
 }
@@ -139,17 +143,21 @@ async function notify(req: Request, type: string, quest_id: string) {
   const { data: subs } = await db.from("push_subs").select("*").eq("user_id", recipient);
   const payload = JSON.stringify({ title, body, url: "./", tag: `quest-${q.id}-${type}` });
   let sent = 0;
+  const failed: { service: string; status?: number; reason: string }[] = [];
   await Promise.all((subs ?? []).map(async (s) => {
+    const service = s.endpoint.includes("apple.com") ? "apple" : s.endpoint.includes("google") ? "google" : new URL(s.endpoint).host;
     try {
-      await webpush.sendNotification({ endpoint: s.endpoint, keys: { p256dh: s.p256dh, auth: s.auth } }, payload, { TTL: 60 * 60 * 24 });
+      await webpush.sendNotification({ endpoint: s.endpoint, keys: { p256dh: s.p256dh, auth: s.auth } }, payload, { TTL: 60 * 60 * 24, urgency: "high" });
       sent++;
     } catch (e) {
-      const code = (e as { statusCode?: number }).statusCode;
-      if (code === 404 || code === 410) await db.from("push_subs").delete().eq("endpoint", s.endpoint); // süresi geçmiş abonelik
-      else console.error("push hata", code, (e as Error).message);
+      const err = e as { statusCode?: number; body?: string; message?: string };
+      if (err.statusCode === 404 || err.statusCode === 410) { await db.from("push_subs").delete().eq("endpoint", s.endpoint); return; } // süresi geçmiş abonelik
+      const reason = String(err.body || err.message || "").slice(0, 160);
+      console.error("push hata", service, err.statusCode, reason);
+      failed.push({ service, status: err.statusCode, reason });
     }
   }));
-  return json({ sent });
+  return json({ sent, devices: subs?.length ?? 0, failed });
 }
 
 // ---------- giriş noktası ----------

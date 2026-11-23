@@ -51,7 +51,7 @@ function avatarEl(i=0){ const list=state.room?.avatars||[];
   return spriteCanvas(); }
 
 /* ---------- yardımcılar ---------- */
-function toast(msg){ const t=document.createElement("div"); t.className="toast"; t.textContent=msg; document.body.append(t); setTimeout(()=>t.remove(),3000); }
+function toast(msg){ const t=document.createElement("div"); t.className="toast"; t.textContent=msg; document.body.append(t); setTimeout(()=>t.remove(),Math.max(3000,msg.length*70)); }
 async function copyText(txt){ try{ await navigator.clipboard.writeText(txt); toast("Kod kopyalandı: "+fmtCode(txt)); }catch{ toast("Kopyalanamadı. Kodu elle yaz: "+fmtCode(txt)); } }
 function fmtDate(t){ try{ return new Date(t).toLocaleDateString("tr-TR",{day:"numeric",month:"short"}); }catch{ return ""; } }
 const initials = (n) => (n||"?").trim().split(/\s+/).map((w)=>w[0]).slice(0,2).join("").toLocaleUpperCase("tr-TR");
@@ -375,6 +375,7 @@ $("addForm").addEventListener("submit", async (e)=>{
   else { $("qTitle").value=""; toast("Görev panoya asıldı ✦"); refreshQuests();
     notify("new", data.id).then((r)=>{
       if(r?.data?.sent>0) toast(`🔔 ${state.room?.hero_name||"Arkadaşına"} bildirim gitti`);
+      else if(r?.data?.failed?.length){ const f=r.data.failed[0]; toast(`⚠️ Bildirim ${f.service==="apple"?"Apple (iPhone)":f.service} tarafından reddedildi: ${f.status||""} ${f.reason||""}`); }
       else if(r?.data?.sent===0) toast(`🔕 ${state.room?.hero_name||"Arkadaşın"} bildirimleri açmamış. Uygulamada 🔔 Bildirimleri aç'a dokunmasını söyle.`);
       else if(r && r.status!==200) toast("Bildirim gönderilemedi ("+(r.data?.error||r.status)+").");
     }); }
