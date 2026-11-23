@@ -1,3 +1,5 @@
+/* Rakamlar: Pixelify Sans'ta 2 ile 8 birbirine benziyor; sadece 0-9 için daha net bir pixel yazı tipi (Jersey 10, OFL) */
+@font-face{font-family:"YKS Rakam";src:url("fonts/rakam.woff2") format("woff2");unicode-range:U+0030-0039;size-adjust:118%;font-display:swap}
 /* Temel sıfırlama (claude.ai sürümünde sayfa iskeleti bunu veriyordu) */
 html{height:100%}
 :root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
@@ -10,7 +12,7 @@ img{max-width:100%}
   --night:#121a33; --night2:#1b2547; --panel:#222d54; --line:#3a4777;
   --gold:#e8c675; --gold2:#b8924a; --parch:#f3e7cc; --ink:#3a2c1a;
   --fg:#eef1ff; --muted:#9ba6cf; --ok:#7fd6a8; --danger:#ef8f8f;
-  --f-display:"Pixelify Sans","Courier New",monospace; --f-body:"Pixelify Sans","Courier New",monospace; --f-pix:"Press Start 2P","Courier New",monospace;
+  --f-display:"YKS Rakam","Pixelify Sans","Courier New",monospace; --f-body:"YKS Rakam","Pixelify Sans","Courier New",monospace; --f-pix:"Press Start 2P","Courier New",monospace;
 }
 *{box-sizing:border-box}
 body{background:radial-gradient(1200px 600px at 70% -10%,#2b3a73 0%,transparent 60%),var(--night);color:var(--fg);font-family:var(--f-body);font-size:16px;line-height:1.45;min-height:100%;-webkit-font-smoothing:none}

@@ -1,0 +1,3 @@
+Jersey 10 — Copyright 2023 The Soft Type Project Authors (https://github.com/scfried/soft-type-jersey)
+Licensed under the SIL Open Font License, Version 1.1 — https://openfontlicense.org
+Bu klasördeki rakam.woff2, Jersey 10 yazı tipinin sadece 0-9 rakamlarını içeren alt kümesidir.
