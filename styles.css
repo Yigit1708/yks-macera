@@ -288,3 +288,17 @@ input,select,textarea{font-size:max(16px,1em)}
 .delconfirm .btn.ghost{color:var(--ink);border-color:var(--ink)}
 .btn.danger{background:#d9646f;color:#fff;box-shadow:0 3px 0 #8e3440}
 
+
+/* Görev tamamlandı başlığı: Türkçe harfleri destekleyen pixel yazı tipi, kelimeler bölünmez */
+.banner{font-family:var(--f-display);font-weight:700;font-size:clamp(28px,8.5vw,48px);letter-spacing:.06em;line-height:1.15;padding:14px 20px;max-width:100%;text-wrap:balance}
+.banner .word{display:inline-block;white-space:nowrap;margin:0 .22em}
+.banner .ltr{display:inline-block;animation:letter .4s steps(4) both}
+.banner span{animation:none}
+.banner .ltr{animation:letter .4s steps(4) both}
+.levelup{font-family:var(--f-display);font-weight:700;font-size:22px;letter-spacing:.06em}
+.chip{font-family:var(--f-display);font-weight:700;font-size:12px;letter-spacing:.08em;padding:3px 7px}
+/* Yetenek yükseldi oku */
+.skillup{display:inline-flex;align-items:center;gap:8px}
+.uparrow{display:inline-grid;place-items:center;width:26px;height:26px;border-radius:4px;background:#1f6b4a;color:#9dffcf;box-shadow:0 0 10px rgba(127,214,168,.8)}
+.uparrow svg{width:14px;height:16px;animation:upbob .7s steps(2) infinite}
+@keyframes upbob{50%{transform:translateY(-3px)}}

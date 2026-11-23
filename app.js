@@ -516,10 +516,17 @@ function celebrate(q,newAr){
   const inner=document.createElement("div"); inner.className="pop-inner";
   const av=document.createElement("div"); av.className="pop-avatar"; av.append(avatarEl(Math.floor(Math.random()*99)));
   const ban=document.createElement("div"); ban.className="banner";
-  [..."GÖREV TAMAMLANDI"].forEach((ch,i)=>{ const s=document.createElement("span"); s.textContent=ch===" "?" ":ch; s.style.animationDelay=(0.25+i*0.04)+"s"; ban.append(s); });
+  // Kelimeler bölünmesin: her kelime kendi kutusunda, sığmazsa kelime komple alt satıra geçer
+  { let n=0; "GÖREV TAMAMLANDI".split(" ").forEach((w)=>{ const ws=document.createElement("span"); ws.className="word";
+    [...w].forEach((ch)=>{ const s=document.createElement("span"); s.className="ltr"; s.textContent=ch; s.style.animationDelay=(0.25+(n++)*0.04)+"s"; ws.append(s); });
+    ban.append(ws); n++; }); }
   const ttl=document.createElement("div"); ttl.className="pop-title"; ttl.textContent=q.title;
   const rw=document.createElement("div"); rw.className="reward";
-  const r1=document.createElement("div"); r1.textContent=`+${q.xp} XP`; const r2=document.createElement("div"); r2.textContent=subj(q.subject).name+" yeteneği ↑"; rw.append(r1,r2);
+  const r1=document.createElement("div"); r1.textContent=`+${q.xp} XP`;
+  const r2=document.createElement("div"); r2.className="skillup"; r2.append(subj(q.subject).name+" yeteneği ");
+  const up=document.createElement("span"); up.className="uparrow"; up.setAttribute("aria-label","yükseldi");
+  up.innerHTML='<svg viewBox="0 0 7 8" aria-hidden="true" shape-rendering="crispEdges"><path fill="currentColor" d="M3 0h1v1h1v1h1v1h1v1H5v4H2V4H0V3h1V2h1V1h1z"/></svg>';
+  r2.append(up); rw.append(r1,r2);
   inner.append(av,ban,ttl,rw);
   if(newAr){ const l=document.createElement("div"); l.className="levelup"; l.textContent=`MACERA RÜTBESİ ${newAr}!`; inner.append(l); }
   const h=document.createElement("div"); h.className="hint"; h.textContent="Devam etmek için dokun"; inner.append(h);
