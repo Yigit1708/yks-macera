@@ -67,7 +67,7 @@ async function callFn(body){
   let data=null; try{ data=await res.json(); }catch{}
   return { status:res.status, data };
 }
-const notify = (type, quest_id) => callFn({ type, quest_id }).catch(()=>{});
+const notify = (type, quest_id) => callFn({ type, quest_id }).catch(()=>null);
 let myLoginCode = null;
 async function claimCode(){
   const { status, data } = await callFn({ type:"claim_code" });
@@ -372,7 +372,12 @@ $("addForm").addEventListener("submit", async (e)=>{
   $("addBtn").disabled=true;
   const { data, error } = await sb.from("quests").insert({ room_code:state.code, title, subject:$("qSubject").value, tier, xp:TIERS[tier].xp, from_id:me }).select("id").single();
   if(error){ toast("Görev eklenemedi, tekrar dene."); }
-  else { $("qTitle").value=""; toast("Görev panoya asıldı ✦"); notify("new", data.id); refreshQuests(); }
+  else { $("qTitle").value=""; toast("Görev panoya asıldı ✦"); refreshQuests();
+    notify("new", data.id).then((r)=>{
+      if(r?.data?.sent>0) toast(`🔔 ${state.room?.hero_name||"Arkadaşına"} bildirim gitti`);
+      else if(r?.data?.sent===0) toast(`🔕 ${state.room?.hero_name||"Arkadaşın"} bildirimleri açmamış. Uygulamada 🔔 Bildirimleri aç'a dokunmasını söyle.`);
+      else if(r && r.status!==200) toast("Bildirim gönderilemedi ("+(r.data?.error||r.status)+").");
+    }); }
   $("addBtn").disabled=false;
 });
 async function complete(q,btn){
@@ -382,7 +387,7 @@ async function complete(q,btn){
   if(error){ btn.disabled=false; toast("Görev kaydedilemedi, tekrar dene."); return; }
   q.done=true; q.done_at=new Date().toISOString(); const after=stats().ar;
   celebrate(q, after>before?after:0);
-  notify("done", q.id);
+  notify("done", q.id).then((r)=>{ if(r?.data?.sent===0) setTimeout(()=>toast("🔕 Görevi veren kişi bildirimleri açmamış, ona haber gitmedi."),2500); });
   render();
 }
 const pendingDelete=new Set();
