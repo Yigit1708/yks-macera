@@ -18,7 +18,7 @@ window.__yksStarted = true;
 const ELEMENTS = {
   pyro:{n:"Pyro",c:"#ef7a3a"}, hydro:{n:"Hydro",c:"#4cc2f1"}, anemo:{n:"Anemo",c:"#74d2b4"},
   electro:{n:"Electro",c:"#b48ef5"}, dendro:{n:"Dendro",c:"#a8cc3c"}, cryo:{n:"Cryo",c:"#a6e0ee"},
-  geo:{n:"Geo",c:"#f0b232"}, abyss:{n:"Abyss",c:"#e0507f"}, all:{n:"Yedi Element",c:"#ffffff"},
+  geo:{n:"Geo",c:"#f0b232"}, abyss:{n:"Abyss",c:"#8f7dff"}, all:{n:"Yedi Element",c:"#ffffff"},
 };
 const SUBJECTS = [
   {id:"turkce",name:"Türkçe",el:"anemo"}, {id:"mat",name:"Matematik",el:"abyss"}, {id:"geo",name:"Geometri",el:"cryo"},
