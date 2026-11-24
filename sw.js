@@ -1,5 +1,5 @@
 // YKS Macera Defteri — servis çalışanı: çevrimdışı kabuk + bildirimler
-const CACHE = "yks-macera-v31";
+const CACHE = "yks-macera-v32";
 const SHELL = ["./", "./index.html", "./styles.css", "./app.js", "./config.js", "./manifest.webmanifest",
   "./icons/icon-192.png", "./icons/icon-512.png", "./icons/apple-touch-icon.png"];
 

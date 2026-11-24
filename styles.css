@@ -381,10 +381,10 @@ input,select,textarea{font-size:max(16px,1em)}
 @keyframes askin{from{opacity:0}to{opacity:1}}
 
 /* haftalık hedef */
-.weekgoal{display:grid;gap:5px;margin-top:14px;padding:8px 10px;border:2px solid var(--line);border-radius:4px;background:rgba(13,19,40,.55)}
-.wg-head{display:flex;align-items:center;gap:8px;font-variant-numeric:tabular-nums}
+.weekgoal{display:grid;gap:5px;margin-top:10px;min-width:0;padding:8px 10px;border:2px solid var(--line);border-radius:4px;background:rgba(13,19,40,.55)}
+.wg-head{display:flex;align-items:center;gap:4px 8px;flex-wrap:wrap;min-width:0;font-variant-numeric:tabular-nums}
 .wg-lbl{white-space:nowrap;font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:var(--gold);font-weight:700}
-.wg-text{flex:1;white-space:nowrap;font-size:14px;color:var(--muted);text-align:right}
+.wg-text{flex:1 1 auto;min-width:0;overflow-wrap:anywhere;font-size:14px;color:var(--muted);text-align:right}
 .wg-more{font:inherit;font-size:20px;line-height:1;font-weight:700;width:34px;height:28px;flex:none;cursor:pointer;color:var(--gold);background:#1a2449;border:2px solid var(--gold2);border-radius:3px;box-shadow:2px 2px 0 rgba(0,0,0,.35);padding:0 0 6px}
 .wg-more:hover{background:#1f2a5a}
 .wg-more[aria-expanded="true"]{background:var(--gold);color:var(--ink)}
@@ -397,3 +397,14 @@ input,select,textarea{font-size:max(16px,1em)}
 .wg-edit{display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding-top:4px}
 .wg-edit input[type=range]{flex:1;min-width:150px;accent-color:var(--gold);height:28px}
 .wg-val{min-width:76px;font-weight:700;color:var(--gold);font-variant-numeric:tabular-nums}
+
+/* hedef tamamlanınca bar boyunca soldan sağa enerji dalgası */
+.wg-bar i{position:relative;overflow:hidden}
+.weekgoal.done .wg-bar i::after{content:"";position:absolute;inset:0;width:45%;left:-45%;
+  background:linear-gradient(90deg,transparent,rgba(255,255,255,.15) 30%,rgba(255,255,255,.85) 50%,rgba(255,255,255,.15) 70%,transparent);
+  animation:wgwave 1.8s cubic-bezier(.45,.05,.55,.95) infinite}
+.weekgoal.done{animation:wgglow 1.8s ease-in-out infinite}
+@keyframes wgwave{0%{left:-45%}70%,100%{left:105%}}
+@keyframes wgglow{0%,100%{box-shadow:0 0 0 rgba(127,214,168,0)}35%{box-shadow:0 0 10px rgba(127,214,168,.55)}}
+@media (prefers-reduced-motion: reduce){.weekgoal.done .wg-bar i::after,.weekgoal.done{animation:none}}
+.hero>*{min-width:0}
