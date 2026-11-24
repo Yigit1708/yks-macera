@@ -15,7 +15,7 @@
 <meta name="apple-mobile-web-app-title" content="YKS Macera">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Pixelify+Sans:wght@400;500;600;700&family=Press+Start+2P&display=swap">
-<link rel="stylesheet" href="styles.css?v=30">
+<link rel="stylesheet" href="styles.css?v=31">
 </head>
 <body>
 <svg width="0" height="0" style="position:absolute" aria-hidden="true">
@@ -159,19 +159,6 @@
             <div class="xpbar" aria-hidden="true"><i id="xpfill"></i></div>
             <span class="xptext" id="xptext">0 / 100 XP</span>
           </div>
-          <div class="weekgoal" id="weekGoal">
-            <div class="wg-head">
-              <span class="wg-lbl">Haftalık hedef</span>
-              <span class="wg-text" id="wgText">0 / 1000 XP</span>
-              <button class="wg-more" type="button" id="wgMore" aria-label="Haftalık hedefi ayarla" aria-expanded="false" title="Hedefi ayarla" hidden>⋯</button>
-            </div>
-            <div class="wg-bar" aria-hidden="true"><i id="wgFill"></i></div>
-            <div class="wg-edit" id="wgEdit" hidden>
-              <input type="range" id="wgRange" min="100" max="5000" step="50" value="1000" aria-label="Haftalık XP hedefi">
-              <span class="wg-val" id="wgVal">1000 XP</span>
-              <button class="btn small" type="button" id="wgSave">Kaydet</button>
-            </div>
-          </div>
         </div>
         <div class="codebox">
           <span class="lbl">Geçit kodu</span>
@@ -182,6 +169,19 @@
               <input type="file" id="avatarInput" accept="image/png,image/jpeg,image/gif,image/webp" multiple hidden>
             </label>
           </div>
+        </div>
+      </div>
+      <div class="weekgoal" id="weekGoal">
+        <div class="wg-head">
+          <span class="wg-lbl">Haftalık hedef</span>
+          <span class="wg-text" id="wgText">0 / 1000 XP</span>
+          <button class="wg-more" type="button" id="wgMore" aria-label="Haftalık hedefi ayarla" aria-expanded="false" title="Hedefi ayarla" hidden>⋯</button>
+        </div>
+        <div class="wg-bar" aria-hidden="true"><i id="wgFill"></i></div>
+        <div class="wg-edit" id="wgEdit" hidden>
+          <input type="range" id="wgRange" min="100" max="5000" step="50" value="1000" aria-label="Haftalık XP hedefi">
+          <span class="wg-val" id="wgVal">1000 XP</span>
+          <button class="btn small" type="button" id="wgSave">Kaydet</button>
         </div>
       </div>
       <div class="trail" id="trail" aria-label="Yolculuk haritası"></div>
@@ -247,7 +247,7 @@
 
 <script>
   // Uygulama dosyası çalışmazsa "açılıyor"da sonsuza kadar bekletme
-  window.__yksV = "30";
+  window.__yksV = "31";
   // iPhone Safari viewport ayarını yok sayabiliyor: iki parmakla yakınlaştırmayı da engelle
   ["gesturestart", "gesturechange", "gestureend"].forEach(function (ev) {
     document.addEventListener(ev, function (e) { e.preventDefault(); }, { passive: false });

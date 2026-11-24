@@ -381,10 +381,10 @@ input,select,textarea{font-size:max(16px,1em)}
 @keyframes askin{from{opacity:0}to{opacity:1}}
 
 /* haftalık hedef */
-.weekgoal{display:grid;gap:5px;margin-top:4px;padding:8px 10px;border:2px solid var(--line);border-radius:4px;background:rgba(13,19,40,.55)}
+.weekgoal{display:grid;gap:5px;margin-top:14px;padding:8px 10px;border:2px solid var(--line);border-radius:4px;background:rgba(13,19,40,.55)}
 .wg-head{display:flex;align-items:center;gap:8px;font-variant-numeric:tabular-nums}
-.wg-lbl{font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:var(--gold);font-weight:700}
-.wg-text{flex:1;font-size:14px;color:var(--muted);text-align:right}
+.wg-lbl{white-space:nowrap;font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:var(--gold);font-weight:700}
+.wg-text{flex:1;white-space:nowrap;font-size:14px;color:var(--muted);text-align:right}
 .wg-more{font:inherit;font-size:20px;line-height:1;font-weight:700;width:34px;height:28px;flex:none;cursor:pointer;color:var(--gold);background:#1a2449;border:2px solid var(--gold2);border-radius:3px;box-shadow:2px 2px 0 rgba(0,0,0,.35);padding:0 0 6px}
 .wg-more:hover{background:#1f2a5a}
 .wg-more[aria-expanded="true"]{background:var(--gold);color:var(--ink)}
