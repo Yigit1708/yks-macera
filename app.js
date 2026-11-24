@@ -306,6 +306,7 @@ function renderHero(){
   $("ar").textContent="AR "+s.ar;
   $("xpfill").style.width=(s.xp%100)+"%";
   $("xptext").textContent=`${s.xp%100} / 100 XP · toplam ${s.xp}`;
+  renderWeekGoal();
   $("roomCode").textContent=fmtCode(state.code); $("noteCode").textContent=fmtCode(state.code);
   $("portrait").replaceChildren(avatarEl(0));
   // Zikzak patika: duraklar eşit aralıkla, sırayla yukarı/aşağı; yazılar hep durağın altında
@@ -424,6 +425,32 @@ function renderLog(){
 function fillSubjects(){ const sel=$("qSubject"), v=sel.value;
   sel.innerHTML=SUBJECTS.map((x)=>{ const s=subj(x.id); return `<option value="${s.id}">${s.name} (${s.eln})</option>`; }).join("");
   if(v) sel.value=v; }
+/* ---------- haftalık hedef (pazartesi 00:00'dan itibaren kazanılan XP) ---------- */
+const DEFAULT_WEEK_GOAL=1000;
+function weekStart(){ const d=new Date(); d.setHours(0,0,0,0); d.setDate(d.getDate()-((d.getDay()+6)%7)); return d; }
+function weekXp(){ const t=weekStart().getTime(); return state.quests.filter((q)=>q.done && ts(q.done_at)>=t).reduce((a,q)=>a+(q.xp||0),0); }
+function weekGoal(){ return state.room?.weekly_goal || DEFAULT_WEEK_GOAL; }
+function renderWeekGoal(){
+  const goal=weekGoal(), xp=weekXp(), done=xp>=goal;
+  $("wgText").textContent=done?`✦ ${xp} / ${goal} XP · hedef tamam!`:`${xp} / ${goal} XP`;
+  $("wgFill").style.width=Math.min(100,xp/goal*100)+"%";
+  $("weekGoal").classList.toggle("done",done);
+  $("wgMore").hidden=!isHero();
+  if(!isHero()) $("wgEdit").hidden=true;
+  if($("wgEdit").hidden){ $("wgRange").value=goal; $("wgVal").textContent=goal+" XP"; }
+}
+$("wgMore").onclick=()=>{ const open=$("wgEdit").hidden; $("wgEdit").hidden=!open; $("wgMore").setAttribute("aria-expanded",open);
+  if(open){ $("wgRange").value=weekGoal(); $("wgVal").textContent=weekGoal()+" XP"; } };
+$("wgRange").oninput=()=>{ $("wgVal").textContent=$("wgRange").value+" XP"; };
+$("wgSave").onclick=async()=>{
+  const goal=+$("wgRange").value; $("wgSave").disabled=true;
+  const { error } = await sb.rpc("set_weekly_goal", { p_code:state.code, p_goal:goal });
+  $("wgSave").disabled=false;
+  if(error){ console.error(error); toast(/set_weekly_goal|function/i.test(error.message||"")?"Haftalık hedef için veritabanı güncellemesi (SQL) henüz yapılmamış.":"Hedef kaydedilemedi, tekrar dene."); return; }
+  if(state.room) state.room.weekly_goal=goal; $("wgEdit").hidden=true; $("wgMore").setAttribute("aria-expanded",false);
+  renderWeekGoal(); toast(`Haftalık hedef ${goal} XP oldu ✦`);
+};
+
 function render(){ if(!state.code) return; fillSubjects(); renderHero(); renderQuests(); renderMembers(); renderSkills(); renderLog(); }
 
 /* ---------- eylemler ---------- */
