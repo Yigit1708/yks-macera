@@ -1,7 +1,7 @@
 // YKS Macera Defteri — servis çalışanı: çevrimdışı kabuk + bildirimler
-const CACHE = "yks-macera-v27";
+const CACHE = "yks-macera-v28";
 const SHELL = ["./", "./index.html", "./styles.css", "./app.js", "./config.js", "./manifest.webmanifest",
-  "./icons/icon-192.png", "./icons/icon-512.png", "./icons/apple-touch-icon.png", "./icons/abyss.png"];
+  "./icons/icon-192.png", "./icons/icon-512.png", "./icons/apple-touch-icon.png"];
 
 self.addEventListener("install", (e) => {
   e.waitUntil(caches.open(CACHE).then((c) => c.addAll(SHELL)).then(() => self.skipWaiting()));
