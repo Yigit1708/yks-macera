@@ -24,7 +24,7 @@ const SUBJECTS = [
   {id:"turkce",name:"Türkçe",el:"anemo"}, {id:"mat",name:"Matematik",el:"abyss"}, {id:"geo",name:"Geometri",el:"cryo"},
   {id:"fizik",name:"Fizik",el:"electro"}, {id:"kimya",name:"Kimya",el:"pyro"}, {id:"biyo",name:"Biyoloji",el:"dendro"},
   {id:"tarih",name:"Tarih",el:"pyro"}, {id:"cog",name:"Coğrafya",el:"hydro"}, {id:"felsefe",name:"Felsefe",el:"anemo"},
-  {id:"din",name:"Din Kültürü",el:"geo"}, {id:"deneme",name:"Deneme",el:"all"},
+  {id:"din",name:"Din Kültürü",el:"geo"}, {id:"deneme",name:"Strateji",el:"all"},
 ];
 const CHOOSABLE = ["pyro","hydro","anemo","electro","dendro","cryo","geo","abyss"];
 const MASKED = ["pyro","hydro","anemo","electro","dendro","cryo","geo"];
