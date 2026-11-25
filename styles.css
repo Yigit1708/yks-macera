@@ -421,14 +421,14 @@ input,select,textarea{font-size:max(16px,1em)}
 .tabbtn svg{width:20px;height:20px;shape-rendering:crispEdges;flex:none}
 .tabbtn[data-tab="ayarlar"] svg{width:22px;height:22px}
 .tabbtn:hover{color:var(--fg);border-color:var(--gold2)}
-.tabbtn[aria-current="page"]{color:var(--ink);background:var(--gold);border-color:var(--gold);box-shadow:0 3px 0 var(--gold2)}
+.tabbtn[aria-current="page"]{color:var(--ink);border-color:var(--tab-edge);box-shadow:0 3px 0 var(--tab-shadow)}
 .tabbtn:focus-visible{outline:2px solid #fff;outline-offset:2px}
 @media (max-width:820px){
   .tabbar{position:fixed;left:16px;right:16px;bottom:calc(10px + env(safe-area-inset-bottom,0px));top:auto;z-index:45;gap:6px;padding:6px;
     background:rgba(12,17,36,.96);border:2px solid var(--gold2);border-radius:999px;
     box-shadow:0 6px 18px rgba(0,0,0,.45),0 0 0 3px rgba(232,198,117,.08);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px)}
   .tabbtn{flex-direction:column;gap:2px;padding:6px 8px;font-size:13px;border-radius:999px;border-color:transparent;background:transparent;box-shadow:none}
-  .tabbtn[aria-current="page"]{box-shadow:0 2px 0 var(--gold2)}
+  .tabbtn[aria-current="page"]{box-shadow:0 2px 0 var(--tab-shadow)}
   .tabbtn svg{width:22px;height:22px}
   body{padding-bottom:calc(96px + env(safe-area-inset-bottom,0px))}
   .toast{bottom:calc(96px + env(safe-area-inset-bottom,0px))}
@@ -533,3 +533,17 @@ button.cc:focus-visible{outline:2px solid #fff;outline-offset:-2px;z-index:1}
 .sethint{margin:8px 0 0;font-size:14px;color:var(--muted)}
 .setcode{font-family:var(--f-pix);font-size:16px;color:var(--gold);letter-spacing:.14em;padding:6px 10px;border:2px dashed var(--gold2);border-radius:3px}
 .setjoin{margin-top:12px;padding:12px;border:2px solid var(--line);border-radius:4px;background:rgba(13,19,40,.5)}
+
+/* her sekmenin kendi rengi: Ev sarı, Takvim açık mavi→pastel mor, Ayarlar pastel kırmızı.
+   Renk bir katmanda durur ve opaklıkla yumuşakça açılıp kapanır (sert geçiş yok). */
+.tabbtn{position:relative;isolation:isolate;overflow:hidden;
+  transition:color .45s ease,border-color .45s ease,box-shadow .45s ease}
+.tabbtn::before{content:"";position:absolute;inset:0;z-index:-1;border-radius:inherit;background:var(--tab-bg);opacity:0;transition:opacity .45s ease}
+.tabbtn[aria-current="page"]::before{opacity:1}
+.tabbtn > *{position:relative}
+.tabbtn[data-tab="ev"]{--tab-bg:linear-gradient(135deg,#f7dc95,#e8c675 55%,#d9ad55);--tab-edge:#e8c675;--tab-shadow:#b8924a}
+.tabbtn[data-tab="takvim"]{--tab-bg:linear-gradient(135deg,#a9d8ff,#b9b6ff 50%,#d2b0ff);--tab-edge:#b6c2ff;--tab-shadow:#7f78c9}
+.tabbtn[data-tab="ayarlar"]{--tab-bg:linear-gradient(135deg,#ffc0b4,#ff9f9f 50%,#f08aa0);--tab-edge:#ffa8a8;--tab-shadow:#b85f6c}
+.tabbtn[aria-current="page"]{color:#2a2140}
+.tabbtn[data-tab="ev"][aria-current="page"]{color:var(--ink)}
+@media (prefers-reduced-motion: reduce){.tabbtn,.tabbtn::before{transition:none}}
