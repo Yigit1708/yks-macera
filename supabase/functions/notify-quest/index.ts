@@ -203,6 +203,64 @@ async function remind(req: Request, quest_id: string) {
   }));
 }
 
+// ---------- takvim alarmları ----------
+// Veritabanındaki zamanlayıcı (pg_cron) bunu her dakika çağırır. Sadece zamanı gelmiş alarmları
+// gönderir ve her alarmı günde bir kez işaretler; bu yüzden fazladan çağrılması zarar vermez.
+const ALARM_LATE_MIN = 20; // sunucu birkaç dakika gecikirse yine de gönder
+function istanbulNow() {
+  const parts = Object.fromEntries(new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Europe/Istanbul", year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit", hourCycle: "h23",
+  }).formatToParts(new Date()).map((x) => [x.type, x.value]));
+  return { day: `${parts.year}-${parts.month}-${parts.day}`, min: Number(parts.hour) * 60 + Number(parts.minute) };
+}
+const weekdayOf = (d: string) => new Date(d + "T00:00:00Z").getUTCDay();
+async function alarms() {
+  await setupVapid();
+  if (vapidError) return json({ error: vapidError }, 500);
+  const db = admin();
+  const now = istanbulNow();
+  const { data: list, error } = await db.from("plans")
+    .select("id, room_code, day, hour, text, done, skip, repeat, repeat_until, alarm_min, alarm_last, series")
+    .not("alarm_min", "is", null).lte("day", now.day);
+  if (error) return json({ error: error.message }, 500);
+  let fired = 0;
+  // deno-lint-ignore no-explicit-any
+  for (const p of (list ?? []) as any[]) {
+    if (p.alarm_last === now.day || p.series) continue;
+    const at = p.hour * 60 - p.alarm_min;
+    if (at > now.min || now.min - at > ALARM_LATE_MIN) continue;
+    let text = p.text;
+    if (!p.repeat) {
+      if (p.day !== now.day || p.done || p.skip) continue;
+    } else {
+      if (weekdayOf(p.day) !== weekdayOf(now.day) || (p.repeat_until && now.day > p.repeat_until)) continue;
+      if (p.day === now.day) { if (p.done || p.skip) continue; }
+      else {
+        const { data: slot } = await db.from("plans").select("id, series, done, skip, text")
+          .eq("room_code", p.room_code).eq("day", now.day).eq("hour", p.hour).maybeSingle();
+        if (slot && slot.series !== p.id) continue;            // o saate başka bir plan yazılmış
+        if (slot && (slot.done || slot.skip)) continue;        // bu hafta tamamlandı ya da atlandı
+        if (slot?.text) text = slot.text;
+      }
+    }
+    // aynı alarmı iki kez göndermemek için önce işaretle
+    const { data: claimed } = await db.from("plans").update({ alarm_last: now.day }).eq("id", p.id)
+      .or(`alarm_last.is.null,alarm_last.neq.${now.day}`).select("id");
+    if (!claimed?.length) continue;
+    const { data: room } = await db.from("rooms").select("hero_id").eq("code", p.room_code).single();
+    if (!room) continue;
+    const hh = String(p.hour).padStart(2, "0") + ":00";
+    await pushTo(db, room.hero_id, {
+      title: `⏰ ${hh} · ${p.alarm_min ? p.alarm_min + " dk sonra" : "Zamanı geldi!"}`,
+      body: `${text} ⚔️ Bitirince takvimde ✓ işaretle, +10 XP!`,
+      url: "./",
+      tag: `alarm-${p.id}-${now.day}`,
+    });
+    fired++;
+  }
+  return json({ ok: true, fired });
+}
+
 // ---------- giriş noktası ----------
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: cors });
@@ -221,6 +279,7 @@ Deno.serve(async (req) => {
       case "new":
       case "done":    return await notify(req, b.type, b.quest_id);
       case "remind":  return await remind(req, b.quest_id);
+      case "alarms":  return await alarms();
       default:        return json({ error: "bad_request" }, 400);
     }
   } catch (e) {

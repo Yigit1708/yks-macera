@@ -456,7 +456,7 @@ $("wgSave").onclick=async()=>{
 /* ---------- sekmeler: Ev / Takvim ---------- */
 function setTab(t){
   if(!["takvim","ayarlar"].includes(t)) t="ev";
-  $("app").dataset.tab=t; store.set("yks-tab",t);
+  $("app").dataset.tab=t; document.documentElement.dataset.tab=t; store.set("yks-tab",t);
   document.querySelectorAll(".tabbtn").forEach((b)=>b.setAttribute("aria-current", b.dataset.tab===t?"page":"false"));
   window.scrollTo(0,0);
   if(t==="takvim" && state.code){ calDay=null; renderCal(); scrollCalToToday(); }
@@ -484,7 +484,8 @@ const calMobile=matchMedia("(max-width: 640px)");
 calMobile.addEventListener?.("change",()=>renderCal());
 const pad2=(n)=>String(n).padStart(2,"0");
 const ymd=(d)=>`${d.getFullYear()}-${pad2(d.getMonth()+1)}-${pad2(d.getDate())}`;
-function planXp(since=0){ return state.plans.filter((p)=>p.done && (!since || ts(p.done_at)>=since)).length*PLAN_XP; }
+// silinen eski haftaların XP'si odada saklanır (plan_xp); bu haftanınki satırlardan sayılır
+function planXp(since=0){ return state.plans.filter((p)=>p.done && (!since || ts(p.done_at)>=since)).length*PLAN_XP + (since?0:(state.room?.plan_xp||0)); }
 function calDays(){ const s=weekStart(); s.setDate(s.getDate()+calOffset*7); return Array.from({length:7},(_,i)=>{ const d=new Date(s); d.setDate(s.getDate()+i); return d; }); }
 function slotStart(dayStr,h){ const [y,m,d]=dayStr.split("-").map(Number); return new Date(y,m-1,d,h,0,0,0); }
 const isMissingTable=(e)=>/plans|42P01|PGRST205|schema cache/i.test((e?.code||"")+" "+(e?.message||""));
@@ -496,6 +497,23 @@ async function refreshPlans(){
   calMissing=false; state.plans=data||[]; render();
 }
 
+// Haftadaki her saat kutusu: gerçek satır, her hafta tekrarlayan planın o haftaki (sanal) kopyası ya da boş.
+// entry = { row: veritabanı satırı ya da null, p: kutuda gösterilecek plan (boşsa null), tpl: tekrarlayan planın ana satırı }
+const addDays=(key,n)=>{ const d=slotStart(key,0); d.setDate(d.getDate()+n); return ymd(d); };
+function weekSlots(days){
+  const keys=new Set(days.map(ymd)), map={};
+  const byId=Object.fromEntries(state.plans.map((p)=>[p.id,p]));
+  state.plans.forEach((r)=>{ if(!keys.has(r.day)) return;
+    const tpl = r.repeat ? r : (r.series ? byId[r.series]||null : null);
+    map[r.day+"|"+r.hour]={ row:r, p:r.skip?null:r, tpl }; });
+  state.plans.filter((t)=>t.repeat).forEach((t)=>{ const wd=slotStart(t.day,0).getDay();
+    days.forEach((d)=>{ const k=ymd(d);
+      if(k<=t.day || d.getDay()!==wd || (t.repeat_until && k>t.repeat_until) || map[k+"|"+t.hour]) return;
+      map[k+"|"+t.hour]={ row:null, tpl:t, p:{ virtual:true, day:k, hour:t.hour, text:t.text, kind:t.kind, done:false } }; }); });
+  return map;
+}
+const alarmOf=(e)=>e?.tpl ? e.tpl.alarm_min : e?.row?.alarm_min;
+
 function renderCal(){
   if(!state.code || $("app").dataset.tab!=="takvim") return;
   const hero=isHero(), days=calDays(), today=ymd(new Date()), now=new Date(), nowH=now.getHours();
@@ -503,12 +521,12 @@ function renderCal(){
   $("calTitle").textContent = a.getMonth()===b.getMonth() ? `${a.getDate()}–${b.getDate()} ${MONTHS[b.getMonth()]}` : `${a.getDate()} ${MONTHS[a.getMonth()].slice(0,3)} – ${b.getDate()} ${MONTHS[b.getMonth()].slice(0,3)}`;
   $("calToday").hidden = calOffset===0;
   $("calHelp").textContent = calMissing ? "⚠️ Takvim için veritabanı güncellemesi (guncelleme-4-takvim.sql) henüz yapılmamış."
-    : hero ? `Bir saate dokun, ne yapacağını yaz. Saati gelip bitirince ✓ işaretle: kare yeşile döner, +${PLAN_XP} XP kazanırsın.`
+    : hero ? `Bir saate dokun, ne yapacağını yaz. İstersen ⏰ alarm kur ya da ↻ her hafta tekrarlat. Bitirince ✓ işaretle: kare yeşile döner, +${PLAN_XP} XP!`
     : `${state.room?.hero_name||"Gezgin"}'in haftalık planı. Yeşil kareler tamamlananlar.`;
   const lg=$("calLegend"); lg.replaceChildren();
   [...Object.values(PLAN_KINDS), {n:"Tamamlandı",c:"var(--ok)"}].forEach((k)=>{ const s=document.createElement("span"); const i=document.createElement("i"); i.style.setProperty("--k",k.c); s.append(i,k.n); lg.append(s); });
 
-  const map={}; state.plans.forEach((p)=>{ map[p.day+"|"+p.hour]=p; });
+  const map=weekSlots(days);
   const mobile=calMobile.matches;
   if(calDay===null || calDay<0 || calDay>6){ const ti=days.findIndex((d)=>ymd(d)===today); calDay=ti>=0?ti:0; }
   const strip=$("calDays"); strip.hidden=!mobile; strip.replaceChildren();
@@ -518,7 +536,7 @@ function renderCal(){
     const n=document.createElement("span"); n.className="cd-n"; n.textContent=DAY_SHORT[i];
     const dt=document.createElement("b"); dt.textContent=d.getDate();
     const dots=document.createElement("span"); dots.className="cd-dots";
-    const dp=state.plans.filter((p)=>p.day===key).sort((x,y)=>x.hour-y.hour);
+    const dp=CAL_HOURS.map((h)=>map[key+"|"+h]?.p).filter(Boolean);
     dp.slice(0,4).forEach((p)=>{ const i_=document.createElement("i"); i_.style.setProperty("--k", p.done?"var(--ok)":(PLAN_KINDS[p.kind]||PLAN_KINDS.ders).c); dots.append(i_); });
     b.append(n,dt,dots); b.setAttribute("aria-label", `${DAY_LONG[i]} ${d.getDate()} ${MONTHS[d.getMonth()]}, ${dp.length} plan`);
     b.onclick=()=>{ calDay=i; renderCal(); };
@@ -534,21 +552,22 @@ function renderCal(){
   CAL_HOURS.forEach((hr)=>{
     const lab=document.createElement("div"); lab.className="chr"+(nowH===hr?" nowh":""); lab.textContent=pad2(hr)+":00"; frag.append(lab);
     shown.forEach((i)=>{ const d=days[i];
-      const key=ymd(d), p=map[key+"|"+hr];
+      const key=ymd(d), e=map[key+"|"+hr], p=e?.p;
       const c=document.createElement(hero?"button":"div"); if(hero) c.type="button";
-      c.className="cc"+(key===today?" today":"")+(p?" has":"")+(p?.done?" done":"")+(key===today&&hr===nowH?" now":"");
+      c.className="cc"+(key===today?" today":"")+(p?" has":"")+(p?.done?" done":"")+(p?.virtual?" virtual":"")+(key===today&&hr===nowH?" now":"");
       c.dataset.slot=key+"|"+hr;
       if(p){ c.style.setProperty("--k",(PLAN_KINDS[p.kind]||PLAN_KINDS.ders).c);
-        const k=document.createElement("span"); k.className="ck"; k.textContent=(PLAN_KINDS[p.kind]||PLAN_KINDS.ders).n;
+        const k=document.createElement("span"); k.className="ck";
+        k.textContent=(e.tpl?"↻ ":"")+(PLAN_KINDS[p.kind]||PLAN_KINDS.ders).n+(alarmOf(e)!=null?" ⏰":"");
         const t=document.createElement("span"); t.className="ct"; t.textContent=p.text; c.append(k,t); }
-      const label=`${DAY_LONG[i]} ${pad2(hr)}:00`+(p?`: ${p.text}${p.done?" (tamamlandı)":""}`:" boş");
+      const label=`${DAY_LONG[i]} ${pad2(hr)}:00`+(p?`: ${p.text}${e.tpl?" (her hafta)":""}${alarmOf(e)!=null?" (alarm)":""}${p.done?" (tamamlandı)":""}`:" boş");
       c.setAttribute("aria-label", label);
-      if(hero) c.onclick=()=>openSlot(d,i,hr,p);
+      if(hero) c.onclick=()=>openSlot(d,i,hr,e||null);
       frag.append(c);
     });
   });
   grid.replaceChildren(frag);
-  const wk=state.plans.filter((p)=>p.day>=ymd(days[0]) && p.day<=ymd(days[6]));
+  const wk=Object.values(map).map((e)=>e.p).filter(Boolean);
   const dn=wk.filter((p)=>p.done).length;
   $("calSum").innerHTML="";
   const sum=document.createElement("span"); sum.append(`Bu haftanın planı: ${wk.length} saat · tamamlanan `);
@@ -574,24 +593,47 @@ function shiftCalDay(step){
     if(Math.abs(dx)>60 && Math.abs(dx)>Math.abs(dy)*1.5) shiftCalDay(dx<0?1:-1); },{passive:true});
 })();
 
-function openSlot(day, di, hr, p){
+const ALARM_OPTS=[["","Alarm yok"],["0","Saatinde"],["5","5 dk önce"],["15","15 dk önce"],["30","30 dk önce"],["60","1 saat önce"]];
+const dbErr=(error,fallback)=>{ console.error(error); toast(isMissingTable(error)||/alarm_min|repeat|series|skip/.test(error?.message||"")?"Takvim için veritabanı güncellemesi (SQL) henüz yapılmamış.":fallback); };
+// Sanal (tekrarlayan) kopya ya da atlanmış kutu için gerçek satır oluşturur
+async function ensureRow(e, extra={}){
+  if(e.row && !e.row.skip && !Object.keys(extra).length) return e.row;
+  if(e.row){ const { data, error } = await sb.from("plans").update({ skip:false, ...extra }).eq("id",e.row.id).select().single(); if(error) throw error; return data; }
+  const { data, error } = await sb.from("plans").insert({ room_code:state.code, day:e.p.day, hour:e.p.hour, text:e.p.text, kind:e.p.kind, series:e.tpl?.id||null, ...extra }).select().single();
+  if(error) throw error; return data;
+}
+
+function openSlot(day, di, hr, e){
   if(!isHero()) return;
   if(calMissing){ toast("Takvim için önce veritabanı güncellemesi (SQL) yapılmalı."); return; }
-  const key=ymd(day), started=slotStart(key,hr)<=new Date();
+  const key=ymd(day), started=slotStart(key,hr)<=new Date(), p=e?.p||null, tpl=e?.tpl||null;
   const back=document.createElement("div"); back.className="askpop"; back.setAttribute("role","dialog"); back.setAttribute("aria-modal","true");
   const card=document.createElement("div"); card.className="askcard frame slotcard";
   const h=document.createElement("h3"); h.textContent=`${DAY_LONG[di]} ${day.getDate()} ${MONTHS[day.getMonth()]} · ${pad2(hr)}:00`;
-  const inp=document.createElement("input"); inp.type="text"; inp.maxLength=80; inp.placeholder="Örn. Paragraf 40 soru"; inp.value=p?.text||""; inp.setAttribute("aria-label","Bu saatte ne yapacaksın?");
+  const inp=document.createElement("input"); inp.type="text"; inp.maxLength=80; inp.placeholder="Örn. Paragraf 40 soru"; inp.value=p?.text||(e?.row?.skip?e.row.text:"")||""; inp.setAttribute("aria-label","Bu saatte ne yapacaksın?");
   const chips=document.createElement("div"); chips.className="kchips"; chips.setAttribute("role","radiogroup"); chips.setAttribute("aria-label","Tür");
   const cur=p?.kind||"ders";
   Object.entries(PLAN_KINDS).forEach(([id,k])=>{ const r=document.createElement("input"); r.type="radio"; r.name="pk"; r.value=id; r.id="pk-"+id; r.checked=id===cur;
     const l=document.createElement("label"); l.htmlFor=r.id; l.style.setProperty("--k",k.c); const i=document.createElement("i"); l.append(i,k.n); chips.append(r,l); });
-  card.append(h,inp,chips);
+  // seçenekler: her hafta tekrar + alarm
+  const opts=document.createElement("div"); opts.className="slotopts";
+  const repL=document.createElement("label"); repL.className="sopt"; const rep=document.createElement("input"); rep.type="checkbox"; rep.checked=!!tpl;
+  repL.append(rep," ↻ Her hafta bu saatte tekrarla");
+  const alL=document.createElement("label"); alL.className="sopt"; alL.append("⏰ Alarm ");
+  const al=document.createElement("select"); ALARM_OPTS.forEach(([v,t])=>{ const o=document.createElement("option"); o.value=v; o.textContent=t; al.append(o); });
+  const curAl=alarmOf(e); al.value=curAl==null?"":String(curAl); alL.append(al);
+  const alNote=document.createElement("p"); alNote.className="slotnote";
+  const syncNote=()=>{ alNote.hidden = !al.value || (typeof Notification!=="undefined" && Notification.permission==="granted");
+    alNote.textContent="Alarmın telefona gelmesi için Ayarlar'dan bildirimleri aç."; };
+  al.onchange=syncNote; syncNote();
+  opts.append(repL,alL);
+  card.append(h,inp,chips,opts,alNote);
   const close=()=>{ back.remove(); removeEventListener("keydown",key_); };
-  const key_=(e)=>{ if(e.key==="Escape") close(); };
+  const key_=(ev)=>{ if(ev.key==="Escape") close(); };
+  const busy=(on)=>card.querySelectorAll("button").forEach((b)=>b.disabled=on);
   if(p && !p.done){
     const dn=document.createElement("button"); dn.type="button"; dn.className="btn slotdone"; dn.textContent=`✓ Tamamladım (+${PLAN_XP} XP)`; dn.disabled=!started;
-    dn.onclick=async()=>{ dn.disabled=true; if(await completePlan(p)) close(); else dn.disabled=false; };
+    dn.onclick=async()=>{ busy(true); if(await completePlan(e)) close(); else busy(false); };
     card.append(dn);
     if(!started){ const n=document.createElement("p"); n.className="slotnote"; n.textContent="Saati gelince tamamlayabilirsin."; card.append(n); }
   } else if(p?.done){
@@ -600,45 +642,114 @@ function openSlot(day, di, hr, p){
   const row=document.createElement("div"); row.className="askrow";
   const no=document.createElement("button"); no.type="button"; no.className="btn ghost"; no.textContent="Vazgeç"; no.onclick=close;
   row.append(no);
-  if(p){
-    if(p.done){ const un=document.createElement("button"); un.type="button"; un.className="btn ghost"; un.textContent="Geri al";
-      un.onclick=async()=>{ un.disabled=true; const { error } = await sb.from("plans").update({ done:false }).eq("id",p.id);
-        if(error){ un.disabled=false; toast("Geri alınamadı."); return; } p.done=false; p.done_at=null; close(); render(); toast(`Geri alındı (−${PLAN_XP} XP)`); };
-      row.append(un); }
+  const confirmDone=async(msg)=>{ back.hidden=true; const ok=await askBox(msg,"Sil"); back.hidden=false; return ok; };
+  if(p?.done && e.row){ const un=document.createElement("button"); un.type="button"; un.className="btn ghost"; un.textContent="Geri al";
+    un.onclick=async()=>{ busy(true); const { error } = await sb.from("plans").update({ done:false }).eq("id",e.row.id);
+      if(error){ busy(false); dbErr(error,"Geri alınamadı."); return; } close(); await refreshPlans(); toast(`Geri alındı (−${PLAN_XP} XP)`); };
+    row.append(un); }
+  if(p && !tpl){
     const del=document.createElement("button"); del.type="button"; del.className="btn danger"; del.textContent="Sil";
-    del.onclick=async()=>{ if(p.done){ back.hidden=true; const ok=await askBox(`Bu tamamlanmış plan silinsin mi? Kazandığın ${PLAN_XP} XP de gider.`,"Sil"); back.hidden=false; if(!ok) return; }
-      del.disabled=true; const { error } = await sb.from("plans").delete().eq("id",p.id);
-      if(error){ del.disabled=false; toast("Silinemedi."); return; } state.plans=state.plans.filter((x)=>x.id!==p.id); close(); render(); };
+    del.onclick=async()=>{ if(p.done && !(await confirmDone(`Bu tamamlanmış plan silinsin mi? Kazandığın ${PLAN_XP} XP de gider.`))) return;
+      busy(true); const { error } = await sb.from("plans").delete().eq("id",e.row.id);
+      if(error){ busy(false); dbErr(error,"Silinemedi."); return; } close(); await refreshPlans(); };
     row.append(del);
+  }
+  if(p && tpl){
+    const d1=document.createElement("button"); d1.type="button"; d1.className="btn danger ghosty"; d1.textContent="Bu haftayı sil";
+    d1.onclick=async()=>{ if(p.done && !(await confirmDone(`Bu haftaki tamamlanmış plan silinsin mi? ${PLAN_XP} XP de gider.`))) return;
+      busy(true);
+      try{ if(e.row){ const { error } = await sb.from("plans").update({ skip:true, done:false }).eq("id",e.row.id); if(error) throw error; }
+        else { const { error } = await sb.from("plans").insert({ room_code:state.code, day:key, hour:hr, text:tpl.text, kind:tpl.kind, series:tpl.id, skip:true }); if(error) throw error; }
+      }catch(err){ busy(false); dbErr(err,"Silinemedi."); return; }
+      close(); await refreshPlans(); toast("Bu haftalık atlandı. Diğer haftalarda duruyor ↻"); };
+    const d2=document.createElement("button"); d2.type="button"; d2.className="btn danger"; d2.textContent="Hepsini sil";
+    d2.onclick=async()=>{ if(!(await confirmDone("Bu plan bu haftadan itibaren tüm haftalardan silinsin mi? Daha önce kazandığın XP kalır."))) return;
+      busy(true);
+      try{
+        let r=await sb.from("plans").delete().eq("series",tpl.id).gte("day",key); if(r.error) throw r.error;
+        r = key<=tpl.day ? await sb.from("plans").delete().eq("id",tpl.id) : await sb.from("plans").update({ repeat_until:addDays(key,-1) }).eq("id",tpl.id);
+        if(r.error) throw r.error;
+      }catch(err){ busy(false); dbErr(err,"Silinemedi."); return; }
+      close(); await refreshPlans(); toast("Tekrarlayan plan kaldırıldı."); };
+    row.append(d1,d2);
   }
   const save=document.createElement("button"); save.type="button"; save.className="btn"; save.textContent="Kaydet";
   save.onclick=async()=>{
     const text=inp.value.trim(), kind=(chips.querySelector("input:checked")||{}).value||"ders";
-    if(!text){ if(p){ save.disabled=true; const { error } = await sb.from("plans").delete().eq("id",p.id); if(error){ save.disabled=false; toast("Kaydedilemedi."); return; }
-        state.plans=state.plans.filter((x)=>x.id!==p.id); render(); } close(); return; }
-    save.disabled=true;
-    const q = p ? sb.from("plans").update({ text, kind }).eq("id",p.id).select().single()
-                : sb.from("plans").insert({ room_code:state.code, day:key, hour:hr, text, kind }).select().single();
-    const { data, error } = await q;
-    if(error){ save.disabled=false; console.error(error); toast(isMissingTable(error)?"Takvim için veritabanı güncellemesi (SQL) henüz yapılmamış.":"Kaydedilemedi, tekrar dene."); return; }
-    state.plans=state.plans.filter((x)=>x.id!==data.id && !(x.day===key && x.hour===hr)).concat(data); close(); render();
+    const alarm_min = al.value==="" ? null : Number(al.value), repeat=rep.checked;
+    if(!text){ close(); return; }
+    busy(true);
+    try{
+      if(!tpl){
+        const fields={ text, kind, repeat, alarm_min, alarm_last:null };
+        if(e?.row){ const { error } = await sb.from("plans").update({ ...fields, skip:false, series:null }).eq("id",e.row.id); if(error) throw error; }
+        else { const { error } = await sb.from("plans").insert({ room_code:state.code, day:key, hour:hr, ...fields }); if(error) throw error; }
+      } else if(repeat){
+        // tekrarlayan planı düzenle: tüm haftalar için ana satırı güncelle
+        let r=await sb.from("plans").update({ text, kind, alarm_min }).eq("id",tpl.id); if(r.error) throw r.error;
+        if(e.row && e.row.id!==tpl.id){ r=await sb.from("plans").update({ text, kind, skip:false }).eq("id",e.row.id); if(r.error) throw r.error; }
+        else if(e.row?.skip){ r=await sb.from("plans").update({ skip:false }).eq("id",e.row.id); if(r.error) throw r.error; }
+      } else {
+        // tekrarı bu haftadan itibaren kapat, bu kutu tek seferlik plan olarak kalsın
+        if(key<=tpl.day){ const { error } = await sb.from("plans").update({ repeat:false, text, kind, alarm_min, skip:false }).eq("id",tpl.id); if(error) throw error; }
+        else {
+          let r=await sb.from("plans").update({ repeat_until:addDays(key,-1) }).eq("id",tpl.id); if(r.error) throw r.error;
+          r=await sb.from("plans").delete().eq("series",tpl.id).gt("day",key); if(r.error) throw r.error;
+          if(e.row) r=await sb.from("plans").update({ series:null, skip:false, text, kind, alarm_min }).eq("id",e.row.id);
+          else r=await sb.from("plans").insert({ room_code:state.code, day:key, hour:hr, text, kind, alarm_min });
+          if(r.error) throw r.error;
+        }
+      }
+    }catch(err){ busy(false); dbErr(err,"Kaydedilemedi, tekrar dene."); return; }
+    close(); await refreshPlans();
+    if(alarm_min!=null) toast(`⏰ Alarm kuruldu: ${alarm_min?alarm_min+" dk önce":"saatinde"}`+(repeat?" · her hafta":""));
   };
-  inp.addEventListener("keydown",(e)=>{ if(e.key==="Enter"){ e.preventDefault(); save.click(); } });
+  inp.addEventListener("keydown",(ev)=>{ if(ev.key==="Enter"){ ev.preventDefault(); save.click(); } });
   row.append(save); card.append(row);
-  back.onclick=(e)=>{ if(e.target===back) close(); };
+  back.onclick=(ev)=>{ if(ev.target===back) close(); };
   addEventListener("keydown",key_); back.append(card); document.body.append(back); setTimeout(()=>inp.focus(),0);
 }
 
-async function completePlan(p){
+async function completePlan(e){
   const arBefore=stats().ar;
-  const { data, error } = await sb.from("plans").update({ done:true }).eq("id",p.id).select().single();
-  if(error){ console.error(error); toast(/not_started/.test(error.message||"")?"Bu saat henüz gelmedi, sonra işaretleyebilirsin.":"İşaretlenemedi, tekrar dene."); return false; }
-  Object.assign(p, data); render();
-  const cell=document.querySelector(`.cc[data-slot="${p.day}|${p.hour}"]`); if(cell){ cell.classList.add("pop"); }
+  let row;
+  try{ row=await ensureRow(e); }catch(err){ dbErr(err,"İşaretlenemedi, tekrar dene."); return false; }
+  const { data, error } = await sb.from("plans").update({ done:true }).eq("id",row.id).select().single();
+  if(error){ if(/not_started/.test(error.message||"")) toast("Bu saat henüz gelmedi, sonra işaretleyebilirsin."); else dbErr(error,"İşaretlenemedi, tekrar dene."); await refreshPlans(); return false; }
+  state.plans=state.plans.filter((x)=>x.id!==data.id).concat(data); render();
+  const cell=document.querySelector(`.cc[data-slot="${data.day}|${data.hour}"]`); if(cell){ cell.classList.add("pop"); }
+  fireworks([(PLAN_KINDS[data.kind]||PLAN_KINDS.ders).c, "#7fd6a8", "#e8c675", "#ffffff"]);
   chime(); try{ navigator.vibrate?.([30,30,60]); }catch{}
   const arAfter=stats().ar;
   toast(arAfter>arBefore ? `✦ +${PLAN_XP} XP · Macera rütbesi ${arAfter}!` : `✦ Plan tamamlandı · +${PLAN_XP} XP`);
   return true;
+}
+
+// Ekranın altında pixel havai fişek patlamaları
+function fireworks(colors){
+  if(matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+  const S=4, cv=document.createElement("canvas"); cv.className="fx"; cv.setAttribute("aria-hidden","true");
+  cv.width=Math.ceil(innerWidth/S); cv.height=Math.ceil(innerHeight/S); document.body.append(cv);
+  const ctx=cv.getContext("2d"), W=cv.width, H=cv.height;
+  const floor=H-Math.round((calMobile.matches?120:70)/S);
+  const parts=[], flashes=[];
+  const burst=(x,y)=>{ flashes.push({x,y,life:4});
+    const n=26+Math.floor(Math.random()*10);
+    for(let i=0;i<n;i++){ const a=Math.PI*2*i/n+Math.random()*.2, sp=.7+Math.random()*1.1;
+      parts.push({ x, y, vx:Math.cos(a)*sp, vy:Math.sin(a)*sp-.6, life:38+Math.random()*26, c:colors[Math.floor(Math.random()*colors.length)] }); } };
+  const shots=[0,130,260,390,520].map((t,i)=>({ t, x:Math.round(W*(.14+.72*((i*0.37+Math.random()*.25)%1))), y:floor-Math.round(Math.random()*H*.12) }));
+  const t0=performance.now();
+  (function frame(now){
+    const el=now-t0; shots.forEach((s)=>{ if(!s.done && el>=s.t){ s.done=true; burst(s.x,s.y); } });
+    ctx.clearRect(0,0,W,H);
+    flashes.forEach((f)=>{ if(f.life-->0){ ctx.fillStyle="#fff"; ctx.fillRect(f.x-1,f.y-1,3,3); } });
+    parts.forEach((p)=>{ if(p.life<=0) return; p.life--; p.x+=p.vx; p.y+=p.vy; p.vy+=.045; p.vx*=.985;
+      ctx.globalAlpha=Math.min(1,p.life/18); ctx.fillStyle=p.c; ctx.fillRect(Math.round(p.x),Math.round(p.y),1,1);
+      if(p.life>30){ ctx.globalAlpha*=.5; ctx.fillRect(Math.round(p.x-p.vx),Math.round(p.y-p.vy),1,1); } });
+    ctx.globalAlpha=1;
+    if(shots.every((s)=>s.done) && parts.every((p)=>p.life<=0)){ cv.remove(); return; }
+    requestAnimationFrame(frame);
+  })(t0);
 }
 
 function render(){ if(!state.code) return; fillSubjects(); renderHero(); renderQuests(); renderMembers(); renderSkills(); renderLog(); renderCal(); }
