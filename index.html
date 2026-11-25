@@ -15,7 +15,7 @@
 <meta name="apple-mobile-web-app-title" content="YKS Macera">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Pixelify+Sans:wght@400;500;600;700&family=Press+Start+2P&display=swap">
-<link rel="stylesheet" href="styles.css?v=37">
+<link rel="stylesheet" href="styles.css?v=38">
 </head>
 <body>
 <svg width="0" height="0" style="position:absolute" aria-hidden="true">
@@ -101,11 +101,6 @@
     <div class="topbar">
       <div class="who">Merhaba, <b id="meName"></b><span class="chip" id="meRole"></span></div>
       <select id="roomSel" aria-label="Hangi macera"></select>
-      <button class="btn ghost small bell" type="button" id="bellBtn" aria-pressed="false" hidden>🔕 Bildirimler kapalı</button>
-      <button class="btn ghost small" type="button" id="joinToggle">+ Arkadaşa katıl</button>
-      <button class="btn ghost small" type="button" id="ownStart" hidden>Kendi maceramı başlat</button>
-      <button class="btn ghost small" type="button" id="myCodeBtn" hidden>🔑 Giriş kodum</button>
-      <button class="btn ghost small" type="button" id="logoutBtn" hidden>Çıkış</button>
     </div>
 
     <nav class="tabbar" id="tabbar" aria-label="Sayfalar">
@@ -116,6 +111,10 @@
       <button class="tabbtn" type="button" data-tab="takvim" aria-current="false">
         <svg viewBox="0 0 16 16" aria-hidden="true"><g fill="currentColor"><rect x="2" y="1" width="12" height="2"/><rect x="2" y="13" width="12" height="2"/><rect x="4" y="3" width="8" height="2" opacity=".4"/><rect x="5" y="5" width="6" height="1"/><rect x="6" y="6" width="4" height="1"/><rect x="7" y="7" width="2" height="2"/><rect x="6" y="9" width="4" height="1" opacity=".4"/><rect x="5" y="10" width="1" height="1" opacity=".4"/><rect x="10" y="10" width="1" height="1" opacity=".4"/><rect x="6" y="10" width="4" height="1"/><rect x="4" y="11" width="8" height="2"/></g></svg>
         <span>Takvim</span>
+      </button>
+      <button class="tabbtn" type="button" data-tab="ayarlar" aria-current="false">
+        <svg viewBox="0 0 16 16" aria-hidden="true"><path fill="currentColor" d="M6 0h4v1h-4zM2 1h2v1h-2zM6 1h4v1h-4zM12 1h2v1h-2zM2 2h12v1h-12zM3 3h10v1h-10zM2 4h4v1h-4zM10 4h4v1h-4zM2 5h3v1h-3zM11 5h3v1h-3zM0 6h4v1h-4zM7 6h2v1h-2zM12 6h4v1h-4zM0 7h4v1h-4zM6 7h4v1h-4zM12 7h4v1h-4zM0 8h4v1h-4zM6 8h4v1h-4zM12 8h4v1h-4zM0 9h4v1h-4zM7 9h2v1h-2zM12 9h4v1h-4zM2 10h3v1h-3zM11 10h3v1h-3zM2 11h4v1h-4zM10 11h4v1h-4zM3 12h10v1h-10zM2 13h12v1h-12zM2 14h2v1h-2zM6 14h4v1h-4zM12 14h2v1h-2zM6 15h4v1h-4z"/></svg>
+        <span>Ayarlar</span>
       </button>
     </nav>
 
@@ -149,15 +148,6 @@
         <span class="muted" id="installAlt">Buton çıkmazsa: Chrome menüsü (⋮) → <b>Uygulamayı yükle</b> veya <b>Ana ekrana ekle</b>.</span>
       </div>
     </section>
-
-    <form class="frame joinbox" id="joinForm" hidden>
-      <label for="joinCode">Yardım edeceğin arkadaşın 6 haneli geçit kodu</label>
-      <div class="row">
-        <input id="joinCode" class="codein" inputmode="numeric" maxlength="6" placeholder="000000" autocomplete="off">
-        <button class="btn" type="submit">Katıl</button>
-      </div>
-      <div class="err" id="joinErr" role="alert"></div>
-    </form>
 
     <section class="frame hero" aria-label="Kahraman">
       <div class="hero-top">
@@ -270,12 +260,49 @@
       <div class="cal-scroll" id="calScroll"><div class="cal" id="cal"></div></div>
       <div class="cal-sum" id="calSum"></div>
     </section>
+
+    <section class="frame panel setview" id="setView" aria-label="Ayarlar">
+      <h2>Ayarlar</h2>
+      <div class="setgroup">
+        <h3>Hesap</h3>
+        <div class="setrow">
+          <button class="btn ghost small" type="button" id="myCodeBtn" hidden>🔑 Giriş kodum</button>
+          <span class="setcode" id="setCode" hidden></span>
+        </div>
+        <p class="sethint">Telefon değişirse isim soyisim + giriş kodunla geri girersin. Kimseyle paylaşma.</p>
+        <div class="setrow">
+          <button class="btn ghost small" type="button" id="logoutBtn" hidden>Çıkış</button>
+        </div>
+      </div>
+      <div class="setgroup">
+        <h3>Bildirimler</h3>
+        <div class="setrow">
+          <button class="btn ghost small bell" type="button" id="bellBtn" aria-pressed="false" hidden>🔕 Bildirimler kapalı</button>
+        </div>
+        <p class="sethint" id="bellHint">Yeni görevler, hatırlatmalar ve tamamlanan görevler telefonuna bildirim olarak gelir.</p>
+      </div>
+      <div class="setgroup">
+        <h3>Maceralar</h3>
+        <div class="setrow">
+          <button class="btn ghost small" type="button" id="joinToggle">+ Arkadaşa katıl</button>
+          <button class="btn ghost small" type="button" id="ownStart" hidden>Kendi maceramı başlat</button>
+        </div>
+        <form class="joinbox setjoin" id="joinForm" hidden>
+          <label for="joinCode">Yardım edeceğin arkadaşın 6 haneli geçit kodu</label>
+          <div class="row">
+            <input id="joinCode" class="codein" inputmode="numeric" maxlength="6" placeholder="000000" autocomplete="off">
+            <button class="btn" type="submit">Katıl</button>
+          </div>
+          <div class="err" id="joinErr" role="alert"></div>
+        </form>
+      </div>
+    </section>
   </div>
 </div>
 
 <script>
   // Uygulama dosyası çalışmazsa "açılıyor"da sonsuza kadar bekletme
-  window.__yksV = "37";
+  window.__yksV = "38";
   // iPhone Safari viewport ayarını yok sayabiliyor: iki parmakla yakınlaştırmayı da engelle
   ["gesturestart", "gesturechange", "gestureend"].forEach(function (ev) {
     document.addEventListener(ev, function (e) { e.preventDefault(); }, { passive: false });

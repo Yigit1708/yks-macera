@@ -203,8 +203,8 @@ $("claimBtn").onclick=async()=>{ $("claimBtn").disabled=true; $("codeErr").textC
   catch{ $("codeErr").textContent="Giriş kodu alınamadı. Biraz sonra tekrar dene."; }
   $("claimBtn").disabled=false; };
 $("codeBannerClose").onclick=()=>{ $("codeBanner").hidden=true; };
-$("myCodeBtn").onclick=()=>{ if(!myLoginCode) return; $("myLoginCode").textContent=fmtCode(myLoginCode);
-  $("codeBannerAsk").hidden=true; $("codeBannerShow").hidden=false; $("codeBanner").hidden=!$("codeBanner").hidden; };
+$("myCodeBtn").onclick=()=>{ if(!myLoginCode) return; const el=$("setCode"); el.textContent=fmtCode(myLoginCode);
+  el.hidden=!el.hidden; $("myCodeBtn").textContent=el.hidden?"🔑 Giriş kodum":"🔑 Kodu gizle"; };
 const withTimeout = (p, ms) => Promise.race([p, new Promise((r)=>setTimeout(()=>r(null), ms))]);
 let logoutTimer=null;
 $("logoutBtn").onclick=async()=>{
@@ -212,7 +212,7 @@ $("logoutBtn").onclick=async()=>{
   if(btn.dataset.sure!=="1"){
     btn.dataset.sure="1"; btn.textContent="Çıkmak için tekrar bas";
     if(myLoginCode) toast("Geri girmek için giriş kodun: "+fmtCode(myLoginCode));
-    else toast("⚠️ Henüz giriş kodun yok! Çıkarsan bu hesaba geri giremezsin. Önce üstteki 'Giriş kodumu al'a bas.");
+    else toast("⚠️ Henüz giriş kodun yok! Çıkarsan bu hesaba geri giremezsin. Önce Ev sayfasındaki 'Giriş kodumu al'a bas.");
     clearTimeout(logoutTimer);
     logoutTimer=setTimeout(()=>{ btn.dataset.sure=""; btn.textContent="Çıkış"; },5000); return;
   }
@@ -273,11 +273,11 @@ $("roomSel").addEventListener("change", async (e)=>{ await enterRoom(e.target.va
 $("joinToggle").onclick=()=>{ $("joinForm").hidden=!$("joinForm").hidden; if(!$("joinForm").hidden) $("joinCode").focus(); };
 $("joinForm").addEventListener("submit", async (e)=>{ e.preventDefault(); $("joinErr").textContent="";
   try{ const err=await joinRoom($("joinCode").value); if(err){ $("joinErr").textContent=err; return; }
-    $("joinCode").value=""; $("joinForm").hidden=true; renderTop(); toast("Maceraya katıldın ✦"); }
+    $("joinCode").value=""; $("joinForm").hidden=true; renderTop(); setTab("ev"); toast("Maceraya katıldın ✦"); }
   catch{ $("joinErr").textContent="Katılamadın. Tekrar dene."; } });
 $("ownStart").onclick=async()=>{ $("ownStart").disabled=true;
   try{ const { data:code, error } = await sb.rpc("create_room"); if(error) throw error;
-    await loadMemberships(); await enterRoom(code); renderTop(); toast("Kendi maceran başladı. Kodun: "+fmtCode(code)); }
+    await loadMemberships(); await enterRoom(code); renderTop(); setTab("ev"); toast("Kendi maceran başladı. Kodun: "+fmtCode(code)); }
   catch{ toast("Macera başlatılamadı."); }
   $("ownStart").disabled=false; };
 $("copyCode").onclick=()=>state.code && copyText(state.code);
@@ -455,13 +455,20 @@ $("wgSave").onclick=async()=>{
 
 /* ---------- sekmeler: Ev / Takvim ---------- */
 function setTab(t){
-  if(t!=="takvim") t="ev";
+  if(!["takvim","ayarlar"].includes(t)) t="ev";
   $("app").dataset.tab=t; store.set("yks-tab",t);
   document.querySelectorAll(".tabbtn").forEach((b)=>b.setAttribute("aria-current", b.dataset.tab===t?"page":"false"));
   window.scrollTo(0,0);
   if(t==="takvim" && state.code){ calDay=null; renderCal(); scrollCalToToday(); }
 }
-document.querySelectorAll(".tabbtn").forEach((b)=>b.onclick=()=>setTab(b.dataset.tab));
+// Sekme simgeleri dokununca oynar: ev zıplar, kum saati ters döner, çark döner
+document.querySelectorAll(".tabbtn").forEach((b)=>b.onclick=()=>{
+  const svg=b.querySelector("svg");
+  if(b.dataset.tab==="takvim"){ svg.classList.toggle("flipped"); }
+  else { const c=b.dataset.tab==="ev"?"bounce":"spin"; svg.classList.remove(c); void svg.getBoundingClientRect(); svg.classList.add(c);
+    svg.addEventListener("animationend",()=>svg.classList.remove(c),{once:true}); }
+  setTab(b.dataset.tab);
+});
 setTab(store.get("yks-tab"));
 
 /* ---------- haftalık takvim ---------- */
