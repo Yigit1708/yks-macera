@@ -459,7 +459,7 @@ function setTab(t){
   $("app").dataset.tab=t; store.set("yks-tab",t);
   document.querySelectorAll(".tabbtn").forEach((b)=>b.setAttribute("aria-current", b.dataset.tab===t?"page":"false"));
   window.scrollTo(0,0);
-  if(t==="takvim"){ renderCal(); scrollCalToToday(); }
+  if(t==="takvim" && state.code){ calDay=null; renderCal(); scrollCalToToday(); }
 }
 document.querySelectorAll(".tabbtn").forEach((b)=>b.onclick=()=>setTab(b.dataset.tab));
 setTab(store.get("yks-tab"));
@@ -471,7 +471,9 @@ const CAL_HOURS=Array.from({length:17},(_,i)=>i+7);           // 07:00 – 23:00
 const DAY_SHORT=["Pzt","Sal","Çar","Per","Cum","Cmt","Paz"];
 const DAY_LONG=["Pazartesi","Salı","Çarşamba","Perşembe","Cuma","Cumartesi","Pazar"];
 const MONTHS=["Ocak","Şubat","Mart","Nisan","Mayıs","Haziran","Temmuz","Ağustos","Eylül","Ekim","Kasım","Aralık"];
-let calOffset=0, calMissing=false;
+let calOffset=0, calMissing=false, calDay=null;
+const calMobile=matchMedia("(max-width: 640px)");
+calMobile.addEventListener?.("change",()=>renderCal());
 const pad2=(n)=>String(n).padStart(2,"0");
 const ymd=(d)=>`${d.getFullYear()}-${pad2(d.getMonth()+1)}-${pad2(d.getDate())}`;
 function planXp(since=0){ return state.plans.filter((p)=>p.done && (!since || ts(p.done_at)>=since)).length*PLAN_XP; }
@@ -499,13 +501,31 @@ function renderCal(){
   [...Object.values(PLAN_KINDS), {n:"Tamamlandı",c:"var(--ok)"}].forEach((k)=>{ const s=document.createElement("span"); const i=document.createElement("i"); i.style.setProperty("--k",k.c); s.append(i,k.n); lg.append(s); });
 
   const map={}; state.plans.forEach((p)=>{ map[p.day+"|"+p.hour]=p; });
-  const grid=$("cal"); const frag=document.createDocumentFragment();
-  const c0=document.createElement("div"); c0.className="c0"; c0.textContent="⌛"; frag.append(c0);
-  days.forEach((d,i)=>{ const h=document.createElement("div"); h.className="ch"+(ymd(d)===today?" today":""); h.textContent=DAY_SHORT[i];
+  const mobile=calMobile.matches;
+  if(calDay===null || calDay<0 || calDay>6){ const ti=days.findIndex((d)=>ymd(d)===today); calDay=ti>=0?ti:0; }
+  const strip=$("calDays"); strip.hidden=!mobile; strip.replaceChildren();
+  if(mobile) days.forEach((d,i)=>{
+    const key=ymd(d), b=document.createElement("button"); b.type="button"; b.setAttribute("role","tab");
+    b.className="cday"+(key===today?" today":""); b.setAttribute("aria-selected", i===calDay);
+    const n=document.createElement("span"); n.className="cd-n"; n.textContent=DAY_SHORT[i];
+    const dt=document.createElement("b"); dt.textContent=d.getDate();
+    const dots=document.createElement("span"); dots.className="cd-dots";
+    const dp=state.plans.filter((p)=>p.day===key).sort((x,y)=>x.hour-y.hour);
+    dp.slice(0,4).forEach((p)=>{ const i_=document.createElement("i"); i_.style.setProperty("--k", p.done?"var(--ok)":(PLAN_KINDS[p.kind]||PLAN_KINDS.ders).c); dots.append(i_); });
+    b.append(n,dt,dots); b.setAttribute("aria-label", `${DAY_LONG[i]} ${d.getDate()} ${MONTHS[d.getMonth()]}, ${dp.length} plan`);
+    b.onclick=()=>{ calDay=i; renderCal(); };
+    strip.append(b);
+  });
+  const shown = mobile ? [calDay] : [0,1,2,3,4,5,6];
+  const grid=$("cal"); grid.classList.toggle("dayview", mobile); const frag=document.createDocumentFragment();
+  if(mobile){ const d=days[calDay]; const hd=document.createElement("div"); hd.className="cdhead"+(ymd(d)===today?" today":"");
+    hd.textContent=`${DAY_LONG[calDay]}, ${d.getDate()} ${MONTHS[d.getMonth()]}`+(ymd(d)===today?" · bugün":""); frag.append(hd); }
+  const c0=document.createElement("div"); c0.className="c0"; c0.textContent="⌛"; if(!mobile) frag.append(c0);
+  if(!mobile) days.forEach((d,i)=>{ const h=document.createElement("div"); h.className="ch"+(ymd(d)===today?" today":""); h.textContent=DAY_SHORT[i];
     const sm=document.createElement("small"); sm.textContent=d.getDate()+" "+MONTHS[d.getMonth()].slice(0,3); h.append(sm); frag.append(h); });
   CAL_HOURS.forEach((hr)=>{
     const lab=document.createElement("div"); lab.className="chr"+(nowH===hr?" nowh":""); lab.textContent=pad2(hr)+":00"; frag.append(lab);
-    days.forEach((d,i)=>{
+    shown.forEach((i)=>{ const d=days[i];
       const key=ymd(d), p=map[key+"|"+hr];
       const c=document.createElement(hero?"button":"div"); if(hero) c.type="button";
       c.className="cc"+(key===today?" today":"")+(p?" has":"")+(p?.done?" done":"")+(key===today&&hr===nowH?" now":"");
@@ -527,12 +547,24 @@ function renderCal(){
   const bb=document.createElement("b"); bb.textContent=`${dn} (+${dn*PLAN_XP} XP)`; sum.append(bb); $("calSum").append(sum);
 }
 function scrollCalToToday(){
+  if(calMobile.matches) return;
   requestAnimationFrame(()=>{ const sc=$("calScroll"), t=sc.querySelector(".ch.today"); if(!t) { sc.scrollLeft=0; return; }
     sc.scrollLeft=Math.max(0, sc.scrollLeft + t.getBoundingClientRect().left - sc.getBoundingClientRect().left - 52); });
 }
-$("calPrev").onclick=()=>{ calOffset--; renderCal(); $("calScroll").scrollLeft=0; };
-$("calNext").onclick=()=>{ calOffset++; renderCal(); $("calScroll").scrollLeft=0; };
-$("calToday").onclick=()=>{ calOffset=0; renderCal(); scrollCalToToday(); };
+$("calPrev").onclick=()=>{ calOffset--; calDay=calMobile.matches?calDay:null; renderCal(); $("calScroll").scrollLeft=0; };
+$("calNext").onclick=()=>{ calOffset++; calDay=calMobile.matches?calDay:null; renderCal(); $("calScroll").scrollLeft=0; };
+$("calToday").onclick=()=>{ calOffset=0; calDay=null; renderCal(); scrollCalToToday(); };
+// Telefonda sola/sağa kaydırınca gün değişir (hafta sınırında önceki/sonraki haftaya geçer)
+function shiftCalDay(step){
+  if(calDay===null) return; calDay+=step;
+  if(calDay>6){ calDay=0; calOffset++; } else if(calDay<0){ calDay=6; calOffset--; }
+  renderCal(); $("cal").classList.remove("slide-l","slide-r"); void $("cal").offsetWidth; $("cal").classList.add(step>0?"slide-l":"slide-r");
+}
+(()=>{ let x0=null, y0=null; const el=$("calScroll");
+  el.addEventListener("touchstart",(e)=>{ if(!calMobile.matches||e.touches.length!==1){ x0=null; return; } x0=e.touches[0].clientX; y0=e.touches[0].clientY; },{passive:true});
+  el.addEventListener("touchend",(e)=>{ if(x0===null) return; const t=e.changedTouches[0], dx=t.clientX-x0, dy=t.clientY-y0; x0=null;
+    if(Math.abs(dx)>60 && Math.abs(dx)>Math.abs(dy)*1.5) shiftCalDay(dx<0?1:-1); },{passive:true});
+})();
 
 function openSlot(day, di, hr, p){
   if(!isHero()) return;

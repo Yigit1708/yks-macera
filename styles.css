@@ -482,3 +482,30 @@ button.cc:focus-visible{outline:2px solid #fff;outline-offset:-2px;z-index:1}
 .slotnote.ok{color:var(--ok);font-weight:700}
 .slotcard .askrow{justify-content:flex-end}
 .slotcard .askrow .btn{min-width:0}
+
+/* telefonda günlük görünüm */
+.cal-days{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;margin-bottom:10px}
+.cday{font:inherit;display:grid;justify-items:center;gap:1px;padding:6px 0 5px;color:var(--fg);background:#141c3a;border:2px solid var(--line);border-radius:4px;cursor:pointer;min-width:0}
+.cday .cd-n{font-size:11px;color:var(--muted);font-weight:700}
+.cday b{font-size:17px;line-height:1.1;font-variant-numeric:tabular-nums}
+.cd-dots{display:flex;gap:2px;height:6px;align-items:center}
+.cd-dots i{width:5px;height:5px;background:var(--k)}
+.cday.today{border-color:var(--gold2)}
+.cday.today .cd-n{color:var(--gold)}
+.cday[aria-selected="true"]{background:var(--gold);border-color:var(--gold);color:var(--ink);box-shadow:0 3px 0 var(--gold2)}
+.cday[aria-selected="true"] .cd-n{color:var(--ink)}
+.cday:focus-visible{outline:2px solid #fff;outline-offset:2px}
+.cal.dayview{grid-template-columns:56px 1fr;min-width:0}
+.cal.dayview .cdhead{grid-column:1/-1;min-height:0;background:#1b2547;color:var(--gold);font-weight:700;font-size:14px;padding:8px 10px}
+.cal.dayview .cdhead.today{background:var(--gold);color:var(--ink)}
+.cal.dayview>*{min-height:52px}
+.cal.dayview .chr{position:static;font-size:13px;padding-top:8px}
+.cal.dayview .cc{font-size:14px;padding:7px 10px}
+.cal.dayview .cc .ck{font-size:11px}
+.cal.dayview .cc .ct{-webkit-line-clamp:2}
+.cal.dayview .cc.done::after{font-size:16px;right:10px;top:50%;bottom:auto;transform:translateY(-50%)}
+.cal.dayview .cc:not(.has):empty::before{content:"+";color:var(--line);font-size:18px;font-weight:700}
+.cal.slide-l{animation:calslideL .22s steps(4)}
+.cal.slide-r{animation:calslideR .22s steps(4)}
+@keyframes calslideL{from{transform:translateX(24px);opacity:.3}to{transform:none;opacity:1}}
+@keyframes calslideR{from{transform:translateX(-24px);opacity:.3}to{transform:none;opacity:1}}
