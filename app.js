@@ -479,7 +479,7 @@ const CAL_HOURS=Array.from({length:17},(_,i)=>i+7);           // 07:00 – 23:00
 const DAY_SHORT=["Pzt","Sal","Çar","Per","Cum","Cmt","Paz"];
 const DAY_LONG=["Pazartesi","Salı","Çarşamba","Perşembe","Cuma","Cumartesi","Pazar"];
 const MONTHS=["Ocak","Şubat","Mart","Nisan","Mayıs","Haziran","Temmuz","Ağustos","Eylül","Ekim","Kasım","Aralık"];
-let calOffset=0, calMissing=false, calDay=null;
+const calOffset=0; let calMissing=false, calDay=null;
 const calMobile=matchMedia("(max-width: 640px)");
 calMobile.addEventListener?.("change",()=>renderCal());
 const pad2=(n)=>String(n).padStart(2,"0");
@@ -519,7 +519,6 @@ function renderCal(){
   const hero=isHero(), days=calDays(), today=ymd(new Date()), now=new Date(), nowH=now.getHours();
   const a=days[0], b=days[6];
   $("calTitle").textContent = a.getMonth()===b.getMonth() ? `${a.getDate()}–${b.getDate()} ${MONTHS[b.getMonth()]}` : `${a.getDate()} ${MONTHS[a.getMonth()].slice(0,3)} – ${b.getDate()} ${MONTHS[b.getMonth()].slice(0,3)}`;
-  $("calToday").hidden = calOffset===0;
   $("calHelp").textContent = calMissing ? "⚠️ Takvim için veritabanı güncellemesi (guncelleme-4-takvim.sql) henüz yapılmamış."
     : hero ? `Bir saate dokun, ne yapacağını yaz. İstersen ⏰ alarm kur ya da ↻ her hafta tekrarlat. Bitirince ✓ işaretle: kare yeşile döner, +${PLAN_XP} XP!`
     : `${state.room?.hero_name||"Gezgin"}'in haftalık planı. Yeşil kareler tamamlananlar.`;
@@ -578,13 +577,10 @@ function scrollCalToToday(){
   requestAnimationFrame(()=>{ const sc=$("calScroll"), t=sc.querySelector(".ch.today"); if(!t) { sc.scrollLeft=0; return; }
     sc.scrollLeft=Math.max(0, sc.scrollLeft + t.getBoundingClientRect().left - sc.getBoundingClientRect().left - 52); });
 }
-$("calPrev").onclick=()=>{ calOffset--; calDay=calMobile.matches?calDay:null; renderCal(); $("calScroll").scrollLeft=0; };
-$("calNext").onclick=()=>{ calOffset++; calDay=calMobile.matches?calDay:null; renderCal(); $("calScroll").scrollLeft=0; };
-$("calToday").onclick=()=>{ calOffset=0; calDay=null; renderCal(); scrollCalToToday(); };
-// Telefonda sola/sağa kaydırınca gün değişir (hafta sınırında önceki/sonraki haftaya geçer)
+// Takvim sadece bu haftayı gösterir (eski/ileri haftalara geçilmez, veritabanı şişmesin)
+// Telefonda sola/sağa kaydırınca gün değişir; Pazartesi'den geriye, Pazar'dan ileriye gitmez
 function shiftCalDay(step){
-  if(calDay===null) return; calDay+=step;
-  if(calDay>6){ calDay=0; calOffset++; } else if(calDay<0){ calDay=6; calOffset--; }
+  if(calDay===null) return; const nd=calDay+step; if(nd<0 || nd>6) return; calDay=nd;
   renderCal(); $("cal").classList.remove("slide-l","slide-r"); void $("cal").offsetWidth; $("cal").classList.add(step>0?"slide-l":"slide-r");
 }
 (()=>{ let x0=null, y0=null; const el=$("calScroll");
