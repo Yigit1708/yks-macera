@@ -409,3 +409,74 @@ input,select,textarea{font-size:max(16px,1em)}
 @keyframes wgglow{0%,100%{box-shadow:0 0 0 rgba(127,214,168,0)}35%{box-shadow:0 0 10px rgba(127,214,168,.55)}}
 @media (prefers-reduced-motion: reduce){.weekgoal.done .wg-bar i::after,.weekgoal.done{animation:none}}
 .hero>*{min-width:0}
+
+/* ---------- sekmeler: Ev / Takvim ---------- */
+.app[data-tab="takvim"]>:not(.topbar):not(.tabbar):not(#calView){display:none!important}
+.app:not([data-tab="takvim"]) #calView{display:none}
+.tabbar{display:flex;gap:10px;position:sticky;top:0;z-index:40;padding:8px 0;background:linear-gradient(180deg,var(--night) 70%,rgba(18,26,51,0))}
+.tabbtn{flex:1;display:flex;align-items:center;justify-content:center;gap:8px;font:inherit;font-weight:700;font-size:16px;color:var(--muted);
+  background:#141c3a;border:2px solid var(--line);border-radius:4px;padding:9px 12px;cursor:pointer;box-shadow:2px 2px 0 rgba(0,0,0,.35)}
+.tabbtn svg{width:20px;height:20px;shape-rendering:crispEdges;flex:none}
+.tabbtn:hover{color:var(--fg);border-color:var(--gold2)}
+.tabbtn[aria-current="page"]{color:var(--ink);background:var(--gold);border-color:var(--gold);box-shadow:0 3px 0 var(--gold2)}
+.tabbtn:focus-visible{outline:2px solid #fff;outline-offset:2px}
+@media (max-width:820px){
+  .tabbar{position:fixed;left:0;right:0;bottom:0;top:auto;z-index:45;gap:8px;padding:8px 12px calc(8px + env(safe-area-inset-bottom,0px));
+    background:rgba(12,17,36,.97);border-top:2px solid var(--gold2);box-shadow:0 -4px 0 rgba(0,0,0,.25)}
+  .tabbtn{flex-direction:column;gap:2px;padding:6px 8px;font-size:13px}
+  .tabbtn svg{width:22px;height:22px}
+  body{padding-bottom:calc(86px + env(safe-area-inset-bottom,0px))}
+  .toast{bottom:calc(92px + env(safe-area-inset-bottom,0px))}
+}
+
+/* ---------- haftalık takvim ---------- */
+.cal-head{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}
+.cal-nav{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.cal-nav .btn{min-width:36px;font-size:16px;padding:4px 10px}
+.cal-title{font-weight:700;color:var(--gold);min-width:120px;text-align:center;font-variant-numeric:tabular-nums}
+.cal-help{margin:8px 0 6px;color:var(--muted);font-size:14px}
+.cal-legend{display:flex;flex-wrap:wrap;gap:6px 12px;margin-bottom:10px;font-size:13px}
+.cal-legend span{display:inline-flex;align-items:center;gap:5px}
+.cal-legend i{width:12px;height:12px;background:var(--k);box-shadow:inset -2px -2px 0 rgba(0,0,0,.25)}
+.cal-scroll{overflow-x:auto;-webkit-overflow-scrolling:touch;padding-bottom:4px;scrollbar-color:var(--gold2) transparent}
+.cal{display:grid;grid-template-columns:44px repeat(7,minmax(84px,1fr));gap:2px;background:var(--line);border:2px solid var(--line);min-width:640px}
+.cal>*{background:#141c3a;min-height:48px}
+.cal .c0,.cal .ch{min-height:0;background:#1b2547;padding:6px 2px;text-align:center;font-size:13px;font-weight:700;color:var(--gold)}
+.cal .c0{position:sticky;left:0;z-index:3}
+.cal .ch small{display:block;font-weight:400;color:var(--muted);font-size:12px}
+.cal .ch.today{background:var(--gold);color:var(--ink)}
+.cal .ch.today small{color:var(--ink)}
+.cal .chr{position:sticky;left:0;z-index:2;background:#1b2547;color:var(--muted);font-size:12px;text-align:center;padding-top:5px;font-variant-numeric:tabular-nums}
+.cal .chr.nowh{color:var(--gold);font-weight:700}
+.cc{font:inherit;display:block;width:100%;text-align:left;font-size:12px;line-height:1.25;color:var(--fg);border:0;border-radius:0;padding:4px 5px;position:relative;overflow:hidden;word-break:break-word}
+button.cc{cursor:pointer}
+button.cc:hover{background:#1f2a5a}
+button.cc:focus-visible{outline:2px solid #fff;outline-offset:-2px;z-index:1}
+.cc.today{background:#18224a}
+.cc.has{background:color-mix(in srgb,var(--k) 24%,#141c3a);box-shadow:inset 3px 0 0 var(--k)}
+.cc.done{background:color-mix(in srgb,var(--ok) 32%,#141c3a);box-shadow:inset 3px 0 0 var(--ok);color:#e6fff1}
+.cc.done::after{content:"✓";position:absolute;right:4px;bottom:2px;color:var(--ok);font-weight:700;font-size:14px}
+.cc.now{outline:2px solid var(--gold);outline-offset:-2px}
+.cc .ck{display:block;font-size:10px;letter-spacing:.05em;text-transform:uppercase;color:var(--k);font-weight:700;margin-bottom:1px}
+.cc.done .ck{color:var(--ok)}
+.cc .ct{display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
+.cc.pop{animation:ccpop .6s steps(6)}
+@keyframes ccpop{0%{transform:scale(1)}40%{transform:scale(1.12);box-shadow:0 0 0 3px var(--ok),0 0 14px var(--ok)}100%{transform:scale(1)}}
+.cal-sum{margin-top:10px;font-size:14px;color:var(--muted);font-variant-numeric:tabular-nums}
+.cal-sum b{color:var(--ok)}
+/* saat kutusu düzenleyici */
+.slotcard{text-align:left;max-width:380px}
+.slotcard h3{font-size:18px;margin-bottom:10px;color:var(--gold)}
+.slotcard input[type=text]{width:100%;margin-bottom:10px}
+.kchips{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:14px}
+.kchips label{display:inline-flex;align-items:center;gap:6px;font-size:13px;font-weight:700;padding:6px 9px;border:2px solid var(--line);border-radius:3px;cursor:pointer}
+.kchips input{position:absolute;opacity:0;width:1px;height:1px;pointer-events:none}
+.kchips i{width:10px;height:10px;background:var(--k)}
+.kchips input:checked+label{border-color:var(--k);background:color-mix(in srgb,var(--k) 22%,transparent)}
+.kchips input:focus-visible+label{outline:2px solid #fff}
+.slotdone{width:100%;margin-bottom:10px;background:var(--ok);color:#0f2a1c;box-shadow:0 3px 0 #3f8f68}
+.slotdone:disabled{opacity:.55;cursor:not-allowed}
+.slotnote{font-size:13px;color:var(--muted);margin:-4px 0 10px}
+.slotnote.ok{color:var(--ok);font-weight:700}
+.slotcard .askrow{justify-content:flex-end}
+.slotcard .askrow .btn{min-width:0}
