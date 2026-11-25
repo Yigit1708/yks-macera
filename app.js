@@ -464,9 +464,10 @@ function setTab(t){
 // Sekme simgeleri dokununca oynar: ev zıplar, kum saati ters döner, çark döner
 document.querySelectorAll(".tabbtn").forEach((b)=>b.onclick=()=>{
   const svg=b.querySelector("svg");
-  if(b.dataset.tab==="takvim"){ svg.classList.toggle("flipped"); }
-  else { const c=b.dataset.tab==="ev"?"bounce":"spin"; svg.classList.remove(c); void svg.getBoundingClientRect(); svg.classList.add(c);
-    svg.addEventListener("animationend",()=>svg.classList.remove(c),{once:true}); }
+  // kum saati her seferinde ileri 180° döner, bitince kum yine altta (ilk hali); çark diş diş döner
+  const c={ev:"bounce", takvim:"flip", ayarlar:"spin"}[b.dataset.tab];
+  svg.classList.remove(c); void svg.getBoundingClientRect(); svg.classList.add(c);
+  svg.addEventListener("animationend",()=>svg.classList.remove(c),{once:true});
   setTab(b.dataset.tab);
 });
 setTab(store.get("yks-tab"));

@@ -419,6 +419,7 @@ input,select,textarea{font-size:max(16px,1em)}
 .tabbtn{flex:1;display:flex;align-items:center;justify-content:center;gap:8px;font:inherit;font-weight:700;font-size:16px;color:var(--muted);
   background:#141c3a;border:2px solid var(--line);border-radius:4px;padding:9px 12px;cursor:pointer;box-shadow:2px 2px 0 rgba(0,0,0,.35)}
 .tabbtn svg{width:20px;height:20px;shape-rendering:crispEdges;flex:none}
+.tabbtn[data-tab="ayarlar"] svg{width:22px;height:22px}
 .tabbtn:hover{color:var(--fg);border-color:var(--gold2)}
 .tabbtn[aria-current="page"]{color:var(--ink);background:var(--gold);border-color:var(--gold);box-shadow:0 3px 0 var(--gold2)}
 .tabbtn:focus-visible{outline:2px solid #fff;outline-offset:2px}
@@ -513,12 +514,14 @@ button.cc:focus-visible{outline:2px solid #fff;outline-offset:-2px;z-index:1}
 @keyframes calslideR{from{transform:translateX(-24px);opacity:.3}to{transform:none;opacity:1}}
 
 /* sekme simgesi animasyonları */
-.tabbtn svg{transition:transform .45s steps(6)}
-.tabbtn svg.flipped{transform:rotate(180deg)}
 .tabbtn svg.bounce{animation:tabbounce .45s steps(6)}
-.tabbtn svg.spin{animation:tabspin .6s cubic-bezier(.3,.1,.3,1)}
+/* kum saati: 6 karede 180° ileri döner, sonda ilk haline (kum altta) geçer */
+.tabbtn svg.flip{animation:tabflip .7s steps(6,jump-none)}
+/* çark: 8 dişli, 90° döner; her kare 11,25° — pixel pixel "tık tık" */
+.tabbtn svg.spin{animation:tabspin .64s steps(9,jump-none)}
 @keyframes tabbounce{0%{transform:scale(1)}35%{transform:scale(1.35)}65%{transform:scale(.85)}100%{transform:scale(1)}}
-@keyframes tabspin{from{transform:rotate(0)}to{transform:rotate(180deg)}}
+@keyframes tabflip{0%{transform:rotate(0)}75%,100%{transform:rotate(180deg)}}
+@keyframes tabspin{from{transform:rotate(0)}to{transform:rotate(90deg)}}
 
 /* ayarlar sayfası */
 .setview h2{margin-bottom:6px}
