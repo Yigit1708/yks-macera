@@ -567,3 +567,15 @@ button.cc:focus-visible{outline:2px solid #fff;outline-offset:-2px;z-index:1}
 .slotcard .askrow{flex-wrap:wrap}
 /* pixel havai fişek */
 .fx{position:fixed;left:0;top:0;width:100vw;height:100vh;pointer-events:none;z-index:95;image-rendering:pixelated;image-rendering:crisp-edges}
+
+/* her hafta tekrarlayan (kalıcı) planlar: kalın, parlayan yazı, sağlam çerçeve */
+.cc.recur{box-shadow:inset 5px 0 0 var(--k),inset 0 0 0 2px color-mix(in srgb,var(--k) 55%,transparent),inset 0 0 14px color-mix(in srgb,var(--k) 30%,transparent)}
+.cc.recur .ct{font-weight:700;color:#fff;letter-spacing:.02em;
+  text-shadow:0 0 1px #fff,0 0 6px color-mix(in srgb,var(--k) 85%,transparent),0 0 12px color-mix(in srgb,var(--k) 55%,transparent);
+  animation:recurglow 3.2s ease-in-out infinite}
+.cc.recur .ck{font-weight:700;text-shadow:0 0 6px color-mix(in srgb,var(--k) 80%,transparent)}
+.cc.recur.done{box-shadow:inset 5px 0 0 var(--ok),inset 0 0 0 2px color-mix(in srgb,var(--ok) 55%,transparent),inset 0 0 14px color-mix(in srgb,var(--ok) 30%,transparent)}
+.cc.recur.done .ct{text-shadow:0 0 1px #fff,0 0 6px color-mix(in srgb,var(--ok) 85%,transparent),0 0 12px color-mix(in srgb,var(--ok) 55%,transparent)}
+.cc.recur.virtual{background-image:none}
+@keyframes recurglow{0%,100%{filter:brightness(1)}50%{filter:brightness(1.25)}}
+@media (prefers-reduced-motion: reduce){.cc.recur .ct{animation:none}}

@@ -553,7 +553,7 @@ function renderCal(){
     shown.forEach((i)=>{ const d=days[i];
       const key=ymd(d), e=map[key+"|"+hr], p=e?.p;
       const c=document.createElement(hero?"button":"div"); if(hero) c.type="button";
-      c.className="cc"+(key===today?" today":"")+(p?" has":"")+(p?.done?" done":"")+(p?.virtual?" virtual":"")+(key===today&&hr===nowH?" now":"");
+      c.className="cc"+(key===today?" today":"")+(p?" has":"")+(p?.done?" done":"")+(p?.virtual?" virtual":"")+(p&&e.tpl?" recur":"")+(key===today&&hr===nowH?" now":"");
       c.dataset.slot=key+"|"+hr;
       if(p){ c.style.setProperty("--k",(PLAN_KINDS[p.kind]||PLAN_KINDS.ders).c);
         const k=document.createElement("span"); k.className="ck";
